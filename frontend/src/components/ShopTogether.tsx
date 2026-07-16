@@ -359,26 +359,76 @@ export function ShopTogether({
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {localMessages.map((msg, idx) => {
                   const isCurrentUser = msg.userId === userId;
+
+                  // Check if this is the first message from this user
+                  const isFirstMessage =
+                    idx === 0 ||
+                    (idx > 0 && localMessages[idx - 1]?.userId !== msg.userId);
+
                   return (
                     <div
                       key={idx}
                       className={`flex flex-col ${isCurrentUser ? "items-end" : "items-start"} animate-message-in`}
                     >
+                      {/* Show avatar and username for other users' first message */}
+                      {!isCurrentUser && isFirstMessage && (
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-amber-500/20">
+                            {(msg.username || "U").charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-[10px] text-white/60 font-medium">
+                            {msg.username || "Unknown User"}
+                          </span>
+                          <span className="text-[8px] text-white/30">
+                            {msg.timestamp
+                              ? new Date(msg.timestamp).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "just now"}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Show "You" for current user's first message */}
+                      {isCurrentUser && isFirstMessage && (
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[10px] text-amber-400/70 font-medium">
+                            You
+                          </span>
+                          <span className="text-[8px] text-white/30">
+                            {msg.timestamp
+                              ? new Date(msg.timestamp).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "just now"}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Message bubble */}
                       <div
-                        className={`max-w-[85%] px-3 py-1.5 rounded-lg text-sm ${
+                        className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
                           isCurrentUser
-                            ? "bg-amber-500 text-white"
-                            : "bg-white/10 text-white"
+                            ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-br-none shadow-lg shadow-amber-500/20"
+                            : "bg-white/10 text-white rounded-bl-none border border-white/5"
                         }`}
                       >
                         {msg.message}
                       </div>
-                      <span className="text-[8px] text-white/30 mt-0.5 px-1">
-                        {msg.username} •{" "}
-                        {msg.timestamp
-                          ? new Date(msg.timestamp).toLocaleTimeString()
-                          : "just now"}
-                      </span>
+
+                      {/* Show time for non-first messages */}
+                      {!isFirstMessage && (
+                        <span className="text-[8px] text-white/20 mt-0.5 px-1">
+                          {msg.timestamp
+                            ? new Date(msg.timestamp).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "just now"}
+                        </span>
+                      )}
                     </div>
                   );
                 })}
@@ -395,19 +445,19 @@ export function ShopTogether({
               </div>
               <form
                 onSubmit={handleSendMessage}
-                className="p-3 border-t border-white/10 flex gap-2"
+                className="p-3 border-t border-white/10 flex gap-2 bg-white/5"
               >
                 <input
                   type="text"
                   placeholder="Type a message..."
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none focus:border-amber-500 placeholder-white/30"
+                  className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm text-white outline-none focus:border-amber-500 placeholder-white/30 transition-all"
                 />
                 <button
                   type="submit"
                   disabled={!messageInput.trim()}
-                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-amber-500/20"
                 >
                   <Send className="w-4 h-4" />
                 </button>

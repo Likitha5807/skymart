@@ -1,0 +1,96 @@
+# render.yaml - Complete SkyMart Deployment Configuration
+
+services:
+  # ============================================================
+  # 1. MAIN BACKEND (Django + API)
+  # ============================================================
+  - type: web
+    name: skymart-h
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: gunicorn backend.wsgi:application
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: skymart-db
+          property: connectionString
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: skymart-h.onrender.com,localhost,127.0.0.1
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: WEB_CONCURRENCY
+        value: 2
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://skymart-h-frontend.onrender.com,https://skymart-socket.onrender.com
+      - key: RAZORPAY_KEY_ID
+        value: rzp_test_T8GTuk6CU21vta
+      - key: RAZORPAY_KEY_SECRET
+        value: m3Gw6abUowajb1PyXfl7Jn0H
+      - key: RAZORPAY_CURRENCY
+        value: INR
+
+  # ============================================================
+  # 2. SOCKET SERVER (Shop Together - Real-time)
+  # ============================================================
+  - type: web
+    name: skymart-socket
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: python socket_server.py
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: SOCKET_PORT
+        value: "5001"
+      - key: ALLOWED_HOSTS
+        value: skymart-socket.onrender.com,localhost,127.0.0.1
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://skymart-h-frontend.onrender.com
+
+  # ============================================================
+  # 3. FRONTEND (React + Vite)
+  # ============================================================
+  - type: web
+    name: skymart-h-frontend
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: frontend
+    buildCommand: |
+      npm install
+      npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: VITE_API_BASE
+        value: https://skymart-h.onrender.com
+      - key: VITE_SOCKET_URL
+        value: https://skymart-socket.onrender.com
+
+# ============================================================
+# 4. DATABASE (PostgreSQL on Neon - Use existing)
+# ============================================================
+databases:
+  - name: skymart-db
+    plan: free
+    databaseName: skymart
+    user: skymart_user
+    # This will create a new DB on Render
+    # If you want to use Neon, remove this and use DATABASE_URL env var instead

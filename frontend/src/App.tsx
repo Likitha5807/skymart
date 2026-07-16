@@ -3279,12 +3279,17 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* SHOP TOGETHER PAGE - FULL SCREEN */}
                 {showShopTogetherPage && currentDetailProduct && (
                   <ShopTogetherRouter
                     currentProduct={currentDetailProduct}
-                    userId={userEmail.split("@")[0] + Date.now()}
-                    username={userEmail.split("@")[0]}
+                    userId={
+                      userData?.id || userEmail.split("@")[0] + Date.now()
+                    }
+                    username={
+                      userData?.name ||
+                      userData?.username ||
+                      userEmail.split("@")[0]
+                    }
                     onProductSelect={(product) => {
                       setSelectedProductId(product.id);
                       setIsDetailView(true);
@@ -3295,7 +3300,6 @@ export default function App() {
                     }}
                   />
                 )}
-
                 {/* INLINE SHOP TOGETHER (fallback) */}
                 {!showShopTogetherPage &&
                   showShopTogether &&
@@ -3303,8 +3307,14 @@ export default function App() {
                     <div className="mt-12">
                       <ShopTogether
                         currentProduct={currentDetailProduct}
-                        userId={userEmail.split("@")[0] + Date.now()}
-                        username={userEmail.split("@")[0]}
+                        userId={
+                          userData?.id || userEmail.split("@")[0] + Date.now()
+                        }
+                        username={
+                          userData?.name ||
+                          userData?.username ||
+                          userEmail.split("@")[0]
+                        }
                         onProductSelect={(product) => {
                           setSelectedProductId(product.id);
                           setIsDetailView(true);
@@ -3313,7 +3323,6 @@ export default function App() {
                       />
                     </div>
                   )}
-
                 <div className="mt-16">
                   <h3 className="font-serif text-lg tracking-widest uppercase mb-8 border-b border-[#e7e5e4] pb-4">
                     Related Products

@@ -113,6 +113,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
       newSocket.disconnect();
     };
   }, []);
+  // frontend/src/context/SocketContext.tsx
 
   const joinRoom = (roomId: string, username: string, userId: string) => {
     if (!socketRef.current || !isConnected) {
@@ -120,14 +121,18 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    console.log("📤 Joining room:", roomId);
+    console.log("📤 Joining room:", roomId, "as:", username);
+
+    // Save user info to localStorage for persistence
+    localStorage.setItem("userId", userId);
+    localStorage.setItem("username", username);
+
     socketRef.current.emit("join_room", {
       room: roomId,
       username: username,
       userId: userId,
     });
   };
-
   const leaveRoom = () => {
     if (!socketRef.current || !currentRoom) return;
 
