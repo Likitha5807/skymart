@@ -45,6 +45,13 @@ export default defineConfig({
     },
   },
 
+  // ✅ ADD THIS PREVIEW SECTION
+  preview: {
+    host: "0.0.0.0",
+    port: 10000,
+    allowedHosts: ["skymart-h-frontend.onrender.com", "localhost", "127.0.0.1"],
+  },
+
   build: {
     outDir: "dist",
     sourcemap: false,
