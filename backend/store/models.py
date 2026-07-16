@@ -213,7 +213,7 @@ class Category(models.Model):
     
     class Meta:
         db_table = 'product_categories'  # Changed from 'store_category'
-        managed = False
+        
     
     def __str__(self):
         return self.name

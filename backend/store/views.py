@@ -19,6 +19,113 @@ from datetime import datetime, timedelta
 import uuid
 import json
 import jwt
+import razorpay
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import json
+import hmac
+import hashlib
+
+# Initialize Razorpay client
+razorpay_client = razorpay.Client(
+    auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_razorpay_order(request):
+    """Create a Razorpay order for payment"""
+    try:
+        data = json.loads(request.body)
+        amount = data.get('amount', 0)
+        currency = data.get('currency', 'INR')
+        receipt = data.get('receipt', f'order_{uuid.uuid4().hex[:8]}')
+        
+        # Create order in Razorpay
+        order_data = {
+            'amount': int(amount * 100),  # Amount in paise
+            'currency': currency,
+            'receipt': receipt,
+            'payment_capture': 1,  # Auto capture
+        }
+        
+        order = razorpay_client.order.create(data=order_data)
+        
+        return JsonResponse({
+            'success': True,
+            'order_id': order['id'],
+            'amount': order['amount'],
+            'currency': order['currency'],
+            'key': settings.RAZORPAY_KEY_ID,
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def verify_razorpay_payment(request):
+    """Verify Razorpay payment signature"""
+    try:
+        data = json.loads(request.body)
+        razorpay_order_id = data.get('razorpay_order_id')
+        razorpay_payment_id = data.get('razorpay_payment_id')
+        razorpay_signature = data.get('razorpay_signature')
+        
+        # Verify signature
+        params_dict = {
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature
+        }
+        
+        # Verify using razorpay client
+        razorpay_client.utility.verify_payment_signature(params_dict)
+        
+        # Payment verified - update your database here
+        # Mark order as paid, update purchase history, etc.
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Payment verified successfully',
+            'payment_id': razorpay_payment_id,
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def razorpay_webhook(request):
+    """Handle Razorpay webhook events"""
+    try:
+        # Verify webhook signature
+        razorpay_signature = request.headers.get('X-Razorpay-Signature')
+        webhook_secret = 'your_webhook_secret'  # Set this in Razorpay dashboard
+        
+        # Verify signature
+        if razorpay_signature:
+            # You can verify webhook signature here
+            pass
+        
+        data = json.loads(request.body)
+        event = data.get('event')
+        payload = data.get('payload')
+        
+        if event == 'payment.captured':
+            payment_id = payload['payment']['entity']['id']
+            order_id = payload['payment']['entity']['order_id']
+            # Update your database
+            print(f"✅ Payment captured: {payment_id} for order: {order_id}")
+        
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
 
 # ============================================================
 # IMPORT SKYCOINS MODELS - ADD THESE IMPORTS
@@ -111,17 +218,32 @@ class JWTAuthenticationMiddleware:
 @csrf_exempt
 @require_http_methods(["POST"])
 def register_view(request):
-    """Register a new user - returns token for auto-login"""
+    """Register a new user - username = first_name"""
     try:
         data = json.loads(request.body)
         
-        # Check if user exists
         email = data.get('email')
+        password = data.get('password')
+        confirm_password = data.get('confirm_password')
+        name = data.get('name', '')
+        
+        # Split name to get first_name
+        name_parts = name.split()
+        first_name = name_parts[0] if name_parts else ''
+        last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+        
+        # Username = first_name (lowercase)
+        username = first_name.lower()
+        
+        # Check if email exists
         if User.objects.filter(email=email).exists():
             return JsonResponse({'email': ['A user with this email already exists.']}, status=400)
         
-        password = data.get('password')
-        confirm_password = data.get('confirm_password')
+        # Check if username exists
+        if User.objects.filter(username=username).exists():
+            # If username taken, add a number
+            count = User.objects.filter(username__startswith=username).count()
+            username = f"{username}{count + 1}"
         
         if password != confirm_password:
             return JsonResponse({'non_field_errors': ['Passwords do not match.']}, status=400)
@@ -129,15 +251,9 @@ def register_view(request):
         if len(password) < 6:
             return JsonResponse({'password': ['Password must be at least 6 characters.']}, status=400)
         
-        # Split name
-        name = data.get('name', '')
-        name_parts = name.split()
-        first_name = name_parts[0] if name_parts else ''
-        last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
-        
-        # Create user
+        # Create user with username = first_name
         user = User.objects.create_user(
-            username=email,
+            username=username,  # First name as username
             email=email,
             password=password,
             first_name=first_name,
@@ -151,64 +267,93 @@ def register_view(request):
             'detail': 'User registered successfully.',
             'token': token,
             'email': user.email,
+            'username': user.username,
             'name': user.first_name or user.username,
             'id': user.id,
-            'username': user.username,
         }, status=201)
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-
 @csrf_exempt
 @require_http_methods(["POST"])
 def login_view(request):
     """Login user - returns JWT token"""
     try:
+        # Parse request body
         data = json.loads(request.body)
-        email = data.get('email')
+        
+        # Get username and password
+        username = data.get('username')
         password = data.get('password')
         
-        if not email or not password:
-            return JsonResponse({'detail': 'Email and password are required.'}, status=400)
+        print(f"🔍 Login attempt: username={username}")
         
+        if not username or not password:
+            return JsonResponse({
+                'detail': 'Username and password are required.'
+            }, status=400)
+        
+        # Try to find user
+        user = None
+        
+        # Try by username first
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(username=username)
+            print(f"✅ Found user by username: {user.username}")
         except User.DoesNotExist:
-            return JsonResponse({'detail': 'Invalid credentials.'}, status=401)
+            # Try by email
+            try:
+                user = User.objects.get(email=username)
+                print(f"✅ Found user by email: {user.username}")
+            except User.DoesNotExist:
+                print(f"❌ User not found: {username}")
+                return JsonResponse({
+                    'detail': 'Invalid credentials.'
+                }, status=401)
         
         # Check password
-        if not check_password(password, user.password):
-            return JsonResponse({'detail': 'Invalid credentials.'}, status=401)
+        if not user.check_password(password):
+            print(f"❌ Invalid password for: {user.username}")
+            return JsonResponse({
+                'detail': 'Invalid credentials.'
+            }, status=401)
         
-        # Login the user for session
+        # Login the user
         login(request, user)
         
         # Generate JWT token
         token = generate_jwt_token(user)
         
+        print(f"✅ Login successful: {user.username}")
+        
         return JsonResponse({
             'detail': 'Login successful.',
             'token': token,
             'email': user.email,
+            'username': user.username,
             'name': user.first_name or user.username,
             'id': user.id,
-            'username': user.username,
         }, status=200)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON decode error: {e}")
+        return JsonResponse({
+            'error': 'Invalid JSON data'
+        }, status=400)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
+        print(f"❌ Login error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': str(e)
+        }, status=500)
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_csrf_token_view(request):
     """Get CSRF token - for frontend"""
     return JsonResponse({'csrfToken': get_token(request)})
-
-
 @csrf_exempt
 @require_http_methods(["POST"])
 def logout_view(request):

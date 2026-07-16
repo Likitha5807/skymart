@@ -1,24 +1,30 @@
 // frontend/vite.config.ts
-import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { fileURLToPath } from "url";
+import path from "path";
+
+// Get the directory name
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  base: "/", // Changed from "/skymart-h/" to "/"
+  base: "/",
 
-  plugins: [react(), tailwindcss()],
+  plugins: [react()],
 
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL(".", import.meta.url)),
+      "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom", "react-router-dom"], // Add this
+    dedupe: ["react", "react-dom", "react-router-dom"],
   },
 
   optimizeDeps: {
-    include: ["react", "react-dom", "react-router-dom"], // Add this
-    force: true, // Add this to force re-optimization
+    include: ["react", "react-dom", "react-router-dom", "lucide-react"],
+    force: true,
+    esbuildOptions: {
+      target: "es2020",
+    },
   },
 
   server: {
@@ -31,18 +37,61 @@ export default defineConfig({
         secure: false,
       },
     },
+    watch: {
+      usePolling: true,
+    },
+    hmr: {
+      overlay: true,
+    },
   },
 
   build: {
     outDir: "dist",
     sourcemap: false,
     minify: "terser",
+    target: "es2020",
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"], // Add react-router-dom
+        manualChunks: (id) => {
+          if (id.includes("node_modules")) {
+            if (
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("react-router-dom")
+            ) {
+              return "react-vendor";
+            }
+            if (id.includes("lucide-react")) {
+              return "icons-vendor";
+            }
+            if (id.includes("leaflet")) {
+              return "map-vendor";
+            }
+            if (id.includes("socket.io")) {
+              return "socket-vendor";
+            }
+            return "vendor";
+          }
         },
       },
+    },
+  },
+
+  esbuild: {
+    target: "es2020",
+  },
+
+  css: {
+    modules: {
+      localsConvention: "camelCase",
+    },
+    postcss: {
+      plugins: [
+        // Use dynamic import for ES modules
+        (await import("tailwindcss")).default,
+        (await import("autoprefixer")).default,
+      ],
     },
   },
 });

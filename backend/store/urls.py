@@ -56,6 +56,7 @@ from .views import (
     reset_streak,
     clear_all_data,
 )
+from .views import create_razorpay_order, verify_razorpay_payment, razorpay_webhook
 
 urlpatterns = [
     # ============================================================
@@ -66,7 +67,11 @@ urlpatterns = [
     path("auth/logout/", logout_view, name="auth-logout"),
     path("auth/me/", get_current_user_view, name="auth-me"),
     path("auth/csrf/", get_csrf_token_view, name="auth-csrf"),
-    
+    # Razorpay Payment URLs
+    path("payments/create-order/", create_razorpay_order, name="create-razorpay-order"),
+    path("payments/verify/", verify_razorpay_payment, name="verify-razorpay-payment"),
+    path("payments/webhook/", razorpay_webhook, name="razorpay-webhook"),
+
     # ============================================================
     # CATEGORY ENDPOINTS
     # ============================================================

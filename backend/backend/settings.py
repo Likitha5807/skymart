@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from datetime import timedelta
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -114,20 +115,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "backend.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ.get("MYSQL_DATABASE", "skymart"),
-        "USER": os.environ.get("MYSQL_USER", "skymart_user"),
-        "PASSWORD": os.environ.get("MYSQL_PASSWORD", "skymart_password"),
-        "HOST": os.environ.get("MYSQL_HOST", "127.0.0.1"),
-        "PORT": os.environ.get("MYSQL_PORT", "3306"),
-        "OPTIONS": {
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
-    }
-}
 
+DATABASES = {
+    "default": dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],
@@ -168,3 +163,18 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+# backend/settings.py - Add at the very end of the file
+
+# ============================================================
+# RAZORPAY PAYMENT CONFIGURATION
+# ============================================================
+
+# Razorpay Test Keys
+RAZORPAY_KEY_ID = "rzp_test_T8GTuk6CU21vta"
+RAZORPAY_KEY_SECRET = "m3Gw6abUowajb1PyXfl7Jn0H"
+RAZORPAY_CURRENCY = "INR"
+
+# For production, use environment variables instead of hardcoding:
+# RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
+# RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')

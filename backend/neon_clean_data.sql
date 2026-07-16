@@ -1,0 +1,203 @@
+-- ============================================================
+-- SKYMART - Neon PostgreSQL Data Import
+-- Clean data only - No CREATE TABLE statements
+-- ============================================================
+
+-- ============================================================
+-- CATEGORIES
+-- ============================================================
+INSERT INTO product_categories (id, name, slug, icon, parent_id, level, display_order, is_active, created_at) VALUES
+(1,'Fashion','fashion','Shirt',NULL,1,1,true,'2026-06-26 23:13:25'),
+(2,'Sports','sports','Activity',NULL,1,2,true,'2026-06-26 23:13:25'),
+(3,'Electronics','electronics','Smartphone',NULL,1,3,true,'2026-06-26 23:13:25'),
+(4,'Home & Living','home-living','Home',NULL,1,4,true,'2026-06-26 23:13:25'),
+(5,'Books','books','BookOpen',NULL,1,5,true,'2026-06-26 23:13:25'),
+(6,'Men','men',NULL,1,2,1,true,'2026-06-26 23:13:25'),
+(7,'Women','women',NULL,1,2,2,true,'2026-06-26 23:13:25'),
+(8,'Kids','kids',NULL,1,2,3,true,'2026-06-26 23:13:25'),
+(9,'T-Shirts','men-tshirts',NULL,6,3,1,true,'2026-06-26 23:13:25'),
+(10,'Shirts','men-shirts',NULL,6,3,2,true,'2026-06-26 23:13:25'),
+(11,'Jeans','men-jeans',NULL,6,3,3,true,'2026-06-26 23:13:25'),
+(12,'Trousers','men-trousers',NULL,6,3,4,true,'2026-06-26 23:13:25'),
+(13,'Kurtas','men-kurtas',NULL,6,3,5,true,'2026-06-26 23:13:25'),
+(14,'Traditional Wear','men-traditional',NULL,6,3,6,true,'2026-06-26 23:13:25'),
+(15,'Blazers','men-blazers',NULL,6,3,7,true,'2026-06-26 23:13:25'),
+(16,'Suits','men-suits',NULL,6,3,8,true,'2026-06-26 23:13:25'),
+(17,'Hoodies','men-hoodies',NULL,6,3,9,true,'2026-06-26 23:13:25'),
+(18,'Jackets','men-jackets',NULL,6,3,10,true,'2026-06-26 23:13:25'),
+(19,'Footwear','men-footwear',NULL,6,3,11,true,'2026-06-26 23:13:25'),
+(20,'Watches','men-watches',NULL,6,3,12,true,'2026-06-26 23:13:25'),
+(21,'Accessories','men-accessories',NULL,6,3,13,true,'2026-06-26 23:13:25'),
+(22,'Western Wear','women-western',NULL,7,3,1,true,'2026-06-26 23:13:25'),
+(23,'Traditional Wear','women-traditional',NULL,7,3,2,true,'2026-06-26 23:13:25'),
+(24,'Indo-Western','women-indo-western',NULL,7,3,3,true,'2026-06-26 23:13:25'),
+(25,'Sarees','women-sarees',NULL,7,3,4,true,'2026-06-26 23:13:25'),
+(26,'Kurtis','women-kurtis',NULL,7,3,5,true,'2026-06-26 23:13:25'),
+(27,'Dresses','women-dresses',NULL,7,3,6,true,'2026-06-26 23:13:25'),
+(28,'Tops','women-tops',NULL,7,3,7,true,'2026-06-26 23:13:25'),
+(29,'Jeans','women-jeans',NULL,7,3,8,true,'2026-06-26 23:13:25'),
+(30,'Skirts','women-skirts',NULL,7,3,9,true,'2026-06-26 23:13:25'),
+(31,'Blazers','women-blazers',NULL,7,3,10,true,'2026-06-26 23:13:25'),
+(32,'Jackets','women-jackets',NULL,7,3,11,true,'2026-06-26 23:13:25'),
+(33,'Skincare','women-skincare',NULL,7,3,12,true,'2026-06-26 23:13:25'),
+(34,'Makeup','women-makeup',NULL,7,3,13,true,'2026-06-26 23:13:25'),
+(35,'Lipsticks','women-lipsticks',NULL,7,3,14,true,'2026-06-26 23:13:25'),
+(36,'Foundations','women-foundations',NULL,7,3,15,true,'2026-06-26 23:13:25'),
+(37,'Eyeliners','women-eyeliners',NULL,7,3,16,true,'2026-06-26 23:13:25'),
+(38,'Perfumes','women-perfumes',NULL,7,3,17,true,'2026-06-26 23:13:25'),
+(39,'Hair Care','women-hair-care',NULL,7,3,18,true,'2026-06-26 23:13:25'),
+(40,'Face Wash','women-face-wash',NULL,7,3,19,true,'2026-06-26 23:13:25'),
+(41,'Sunscreens','women-sunscreens',NULL,7,3,20,true,'2026-06-26 23:13:25'),
+(42,'Handbags','women-handbags',NULL,7,3,21,true,'2026-06-26 23:13:25'),
+(43,'Jewellery','women-jewellery',NULL,7,3,22,true,'2026-06-26 23:13:25'),
+(44,'Watches','women-watches',NULL,7,3,23,true,'2026-06-26 23:13:25'),
+(45,'Footwear','women-footwear',NULL,7,3,24,true,'2026-06-26 23:13:25'),
+(46,'Boys Wear','kids-boys',NULL,8,3,1,true,'2026-06-26 23:13:25'),
+(47,'Girls Wear','kids-girls',NULL,8,3,2,true,'2026-06-26 23:13:25'),
+(48,'Traditional Wear','kids-traditional',NULL,8,3,3,true,'2026-06-26 23:13:25'),
+(49,'Casual Wear','kids-casual',NULL,8,3,4,true,'2026-06-26 23:13:25'),
+(50,'School Wear','kids-school',NULL,8,3,5,true,'2026-06-26 23:13:25'),
+(51,'Party Wear','kids-party',NULL,8,3,6,true,'2026-06-26 23:13:25'),
+(52,'Shoes','kids-shoes',NULL,8,3,7,true,'2026-06-26 23:13:25'),
+(53,'Toys','kids-toys',NULL,8,3,8,true,'2026-06-26 23:13:25'),
+(54,'Bags','kids-bags',NULL,8,3,9,true,'2026-06-26 23:13:25'),
+(55,'Accessories','kids-accessories',NULL,8,3,10,true,'2026-06-26 23:13:25'),
+(56,'Cricket','sports-cricket',NULL,2,2,1,true,'2026-06-26 23:13:25'),
+(57,'Football','sports-football',NULL,2,2,2,true,'2026-06-26 23:13:25'),
+(58,'Basketball','sports-basketball',NULL,2,2,3,true,'2026-06-26 23:13:25'),
+(59,'Tennis','sports-tennis',NULL,2,2,4,true,'2026-06-26 23:13:25'),
+(60,'Badminton','sports-badminton',NULL,2,2,5,true,'2026-06-26 23:13:25'),
+(61,'Chess','sports-chess',NULL,2,2,6,true,'2026-06-26 23:13:25'),
+(62,'Carrom','sports-carrom',NULL,2,2,7,true,'2026-06-26 23:13:25'),
+(63,'Yoga','sports-yoga',NULL,2,2,8,true,'2026-06-26 23:13:25'),
+(64,'Fitness','sports-fitness',NULL,2,2,9,true,'2026-06-26 23:13:25'),
+(65,'Cycling','sports-cycling',NULL,2,2,10,true,'2026-06-26 23:13:25'),
+(66,'Smartphones','electronics-phones',NULL,3,2,1,true,'2026-06-26 23:13:25'),
+(67,'Laptops','electronics-laptops',NULL,3,2,2,true,'2026-06-26 23:13:25'),
+(68,'Headphones','electronics-headphones',NULL,3,2,3,true,'2026-06-26 23:13:25'),
+(69,'Wearables','electronics-wearables',NULL,3,2,4,true,'2026-06-26 23:13:25'),
+(70,'Cameras','electronics-cameras',NULL,3,2,5,true,'2026-06-26 23:13:25'),
+(71,'Smart Home','electronics-smart-home',NULL,3,2,6,true,'2026-06-26 23:13:25'),
+(72,'Furniture','home-furniture',NULL,4,2,1,true,'2026-06-26 23:13:25'),
+(73,'Kitchen','home-kitchen',NULL,4,2,2,true,'2026-06-26 23:13:25'),
+(74,'Bedding','home-bedding',NULL,4,2,3,true,'2026-06-26 23:13:25'),
+(75,'Decor','home-decor',NULL,4,2,4,true,'2026-06-26 23:13:25'),
+(76,'Lighting','home-lighting',NULL,4,2,5,true,'2026-06-26 23:13:25'),
+(77,'Storage','home-storage',NULL,4,2,6,true,'2026-06-26 23:13:25'),
+(78,'Fiction','books-fiction',NULL,5,2,1,true,'2026-06-26 23:13:25'),
+(79,'Non-Fiction','books-nonfiction',NULL,5,2,2,true,'2026-06-26 23:13:25'),
+(80,'Self-Help','books-self-help',NULL,5,2,3,true,'2026-06-26 23:13:25'),
+(81,'Business','books-business',NULL,5,2,4,true,'2026-06-26 23:13:25'),
+(82,'Science','books-science',NULL,5,2,5,true,'2026-06-26 23:13:25'),
+(83,'History','books-history',NULL,5,2,6,true,'2026-06-26 23:13:25'),
+(84,'Biography','books-biography',NULL,5,2,7,true,'2026-06-26 23:13:25'),
+(85,'Volleyball','volleyball',NULL,2,2,61,true,'2026-06-26 23:13:27');
+
+-- ============================================================
+-- BRANDS
+-- ============================================================
+INSERT INTO store_brands (id, name, slug, logo, category_id, is_active, created_at) VALUES
+(1,'Nike','nike',NULL,2,true,'2026-06-26 23:13:25'),
+(2,'Adidas','adidas',NULL,2,true,'2026-06-26 23:13:25'),
+(3,'Puma','puma',NULL,2,true,'2026-06-26 23:13:25'),
+(4,'Levi''s','levis',NULL,2,true,'2026-06-26 23:13:25'),
+(5,'Tommy Hilfiger','tommy-hilfiger',NULL,2,true,'2026-06-26 23:13:25'),
+(6,'Zara','zara',NULL,2,true,'2026-06-26 23:13:25'),
+(7,'H&M','hm',NULL,2,true,'2026-06-26 23:13:25'),
+(8,'Raymond','raymond',NULL,2,true,'2026-06-26 23:13:25'),
+(9,'Louis Philippe','louis-philippe',NULL,2,true,'2026-06-26 23:13:25'),
+(10,'Allen Solly','allen-solly',NULL,2,true,'2026-06-26 23:13:25'),
+(11,'Lakme','lakme',NULL,3,true,'2026-06-26 23:13:25'),
+(12,'MAC','mac',NULL,3,true,'2026-06-26 23:13:25'),
+(13,'Gucci','gucci',NULL,3,true,'2026-06-26 23:13:25'),
+(14,'Chanel','chanel',NULL,3,true,'2026-06-26 23:13:25'),
+(15,'Biba','biba',NULL,3,true,'2026-06-26 23:13:25'),
+(16,'FabIndia','fabindia',NULL,3,true,'2026-06-26 23:13:25'),
+(17,'Maybelline','maybelline',NULL,3,true,'2026-06-26 23:13:25'),
+(18,'Nykaa','nykaa',NULL,3,true,'2026-06-26 23:13:25'),
+(19,'Nike Kids','nike-kids',NULL,4,true,'2026-06-26 23:13:25'),
+(20,'Adidas Kids','adidas-kids',NULL,4,true,'2026-06-26 23:13:25'),
+(21,'Zara Kids','zara-kids',NULL,4,true,'2026-06-26 23:13:25'),
+(22,'FirstCry','firstcry',NULL,4,true,'2026-06-26 23:13:25'),
+(23,'Babyhug','babyhug',NULL,4,true,'2026-06-26 23:13:25'),
+(24,'Yonex','yonex',NULL,6,true,'2026-06-26 23:13:25'),
+(25,'SG','sg',NULL,6,true,'2026-06-26 23:13:25'),
+(26,'Cosco','cosco',NULL,6,true,'2026-06-26 23:13:25'),
+(27,'Decathlon','decathlon',NULL,6,true,'2026-06-26 23:13:25'),
+(28,'Reebok','reebok',NULL,6,true,'2026-06-26 23:13:25'),
+(29,'Under Armour','under-armour',NULL,6,true,'2026-06-26 23:13:25'),
+(30,'Apple','apple',NULL,7,true,'2026-06-26 23:13:25'),
+(31,'Samsung','samsung',NULL,7,true,'2026-06-26 23:13:25'),
+(32,'Sony','sony',NULL,7,true,'2026-06-26 23:13:25'),
+(33,'OnePlus','oneplus',NULL,7,true,'2026-06-26 23:13:25'),
+(34,'Bose','bose',NULL,7,true,'2026-06-26 23:13:25'),
+(35,'Google','google',NULL,7,true,'2026-06-26 23:13:25'),
+(36,'IKEA','ikea',NULL,8,true,'2026-06-26 23:13:25'),
+(37,'Pepperfry','pepperfry',NULL,8,true,'2026-06-26 23:13:25'),
+(38,'Urban Ladder','urban-ladder',NULL,8,true,'2026-06-26 23:13:25'),
+(39,'Wakefit','wakefit',NULL,8,true,'2026-06-26 23:13:25'),
+(40,'Bombay Dyeing','bombay-dyeing',NULL,8,true,'2026-06-26 23:13:25'),
+(41,'Penguin Random House','penguin',NULL,9,true,'2026-06-26 23:13:25'),
+(42,'HarperCollins','harpercollins',NULL,9,true,'2026-06-26 23:13:25'),
+(43,'Bloomsbury','bloomsbury',NULL,9,true,'2026-06-26 23:13:25'),
+(44,'Oxford University Press','oxford',NULL,9,true,'2026-06-26 23:13:25'),
+(45,'Spalding','spalding',NULL,NULL,true,'2026-06-27 01:04:01'),
+(46,'MRF','mrf',NULL,NULL,true,'2026-06-27 01:11:34'),
+(47,'Slazenger','slazenger',NULL,NULL,true,'2026-06-27 01:28:31'),
+(48,'Wilson','wilson',NULL,NULL,true,'2026-06-27 01:29:34'),
+(49,'Babolat','babolat',NULL,NULL,true,'2026-06-27 01:29:39'),
+(50,'Security Camera','security-camera',NULL,NULL,true,'2026-06-29 13:59:40'),
+(52,'Panasonic','panasonic',NULL,NULL,true,'2026-06-29 14:05:54'),
+(53,'Nikon','nikon',NULL,NULL,true,'2026-06-29 14:06:00'),
+(54,'Canon','canon',NULL,NULL,true,'2026-06-29 14:10:31'),
+(55,'Fujifilm','fujifilm',NULL,NULL,true,'2026-06-29 14:10:31'),
+(56,'Dell','dell',NULL,NULL,true,'2026-06-29 14:28:36'),
+(57,'HP','hp',NULL,NULL,true,'2026-06-29 14:28:36'),
+(61,'Simon & Schuster','simon-schuster',NULL,NULL,true,'2026-06-29 14:40:58'),
+(62,'Hachette','hachette',NULL,NULL,true,'2026-06-29 14:40:58'),
+(63,'Macmillan','macmillan',NULL,NULL,true,'2026-06-29 14:40:58'),
+(64,'Scholastic','scholastic',NULL,NULL,true,'2026-06-29 14:40:58'),
+(65,'Pearson','pearson',NULL,NULL,true,'2026-06-29 14:40:58'),
+(66,'Wiley','wiley',NULL,NULL,true,'2026-06-29 14:40:58'),
+(67,'Houghton Mifflin Harcourt','houghton-mifflin-harcourt',NULL,NULL,true,'2026-06-29 14:40:58'),
+(70,'Amazon','amazon',NULL,NULL,true,'2026-06-29 15:02:40'),
+(71,'Nothing','nothing',NULL,NULL,true,'2026-06-29 15:02:40'),
+(72,'Vivo','vivo',NULL,NULL,true,'2026-06-29 15:02:40'),
+(73,'Xiaomi','xiaomi',NULL,NULL,true,'2026-06-29 15:02:40'),
+(74,'Oppo','oppo',NULL,NULL,true,'2026-06-29 15:02:40'),
+(75,'Realme','realme',NULL,NULL,true,'2026-06-29 15:02:40'),
+(76,'Noise','noise',NULL,NULL,true,'2026-06-29 15:02:40'),
+(77,'Boat','boat',NULL,NULL,true,'2026-06-29 15:02:40'),
+(78,'Oura','oura',NULL,NULL,true,'2026-06-29 15:02:40'),
+(79,'Fire-Boltt','fire-boltt',NULL,NULL,true,'2026-06-29 15:02:40'),
+(80,'Fastrack','fastrack',NULL,NULL,true,'2026-06-29 15:02:40'),
+(81,'Fossil','fossil',NULL,NULL,true,'2026-06-29 15:02:40');
+
+-- ============================================================
+-- USERS (Only essential ones)
+-- ============================================================
+INSERT INTO auth_user (id, password, last_login, is_superuser, username, first_name, last_name, email, is_staff, is_active, date_joined) VALUES
+(1,'pbkdf2_sha256$1200000$Z0Vo28yCJksEIOMuh3oxCn$OHgKnNnV7JFQtE4dDfVCTV7+8q3ymBAXIHYESRMXhvQ=','2026-07-03 05:58:56',false,'hitheshyadav5@gmail.com','hitesh yadav','','hitheshyadav5@gmail.com',false,true,'2026-06-22 18:41:05'),
+(6,'pbkdf2_sha256$1200000$YZ1fhp6rMkby4DX29lOWQU$mEL3OforBZrZZ4PJRm6KH+KNjSR5t9+pBiUPKqISm1g=','2026-06-23 20:42:35',true,'jhitheshwar','','','hitheshwaryadav5@gmail.com',true,true,'2026-06-23 20:41:32'),
+(8,'pbkdf2_sha256$1200000$r5UwouQ7OXRM9BzfH8NCrT$/i1gJ7qvLmaREx3Sq6wer88WYBhEKrhy0Q4UHCMpMAk=','2026-06-25 10:31:21',false,'anjani@gmail.com','anju','reddy','anjani@gmail.com',false,true,'2026-06-25 10:31:09'),
+(10,'pbkdf2_sha256$1200000$4y4E2EeWJQBVvSfYtEI9zz$+nLNoNO362cU/z6Ed9D0EJMvtxsYWuRvxXQXzQenrgo=','2026-07-04 13:58:11',false,'prem@gmail.com','prem','yadav','prem@gmail.com',false,true,'2026-06-26 22:30:42'),
+(13,'pbkdf2_sha256$1200000$FzPK51m8hiMHApOQbxF1Rc$LXvvb04NeKp0I6LM6jFlZ7CNYvmoxoqb2lQe6Rhir9I=','2026-07-04 14:01:14',false,'deekshi@gmail.com','deekshitha','yadav','deekshi@gmail.com',false,true,'2026-06-28 05:57:27');
+
+-- ============================================================
+-- INSERT ONLY THE FIRST 20 PRODUCTS (to test)
+-- ============================================================
+INSERT INTO store_products (id, name, slug, brand_id, category_id, price, discount_price, img, images, description, short_description, sizes, colors, rating, reviews_count, in_stock, is_featured, is_new, is_best_seller, created_at, updated_at) VALUES
+(1,'Classic Cotton T-Shirt','classic-cotton-tshirt',5,9,1599.00,2499.00,'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80',NULL,'Premium cotton t-shirt with classic fit','Soft cotton t-shirt','["S","M","L","XL"]','["White","Black","Navy"]',4.50,120,true,true,true,false,'2026-06-26 23:13:25','2026-06-26 23:13:26'),
+(2,'Slim Fit Jeans','slim-fit-jeans',4,11,3999.00,4499.00,'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=600&q=80',NULL,'Classic slim fit jeans with stretch comfort','Premium denim jeans','["28","30","32","34","36"]','["Blue","Black","Gray"]',4.60,200,true,true,false,true,'2026-06-26 23:13:25','2026-06-26 23:13:26'),
+(3,'Formal Shirt','formal-shirt',9,10,2499.00,3999.00,'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&q=80',NULL,'Elegant formal shirt with premium fabric','Premium formal shirt','["S","M","L","XL","XXL"]','["White","Blue","Pink","Charcoal"]',4.70,85,true,true,false,true,'2026-06-26 23:13:25','2026-06-26 23:13:26');
+
+-- ============================================================
+-- VERIFY DATA
+-- ============================================================
+-- SELECT 'Categories' as table_name, COUNT(*) as count FROM product_categories
+-- UNION ALL
+-- SELECT 'Brands', COUNT(*) FROM store_brands
+-- UNION ALL
+-- SELECT 'Products', COUNT(*) FROM store_products
+-- UNION ALL
+-- SELECT 'Users', COUNT(*) FROM auth_user;

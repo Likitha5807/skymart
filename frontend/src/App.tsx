@@ -1,4 +1,4 @@
-// src/App.tsx - COMPLETE WITH ALL MODULES (Designer Hub, Shop Together, React Router, SkyCoins, SplashScreen, etc.)
+// src/App.tsx - COMPLETE WITH ALL MODULES (Designer Hub, Shop Together, React Router, SkyCoins, SplashScreen, Razorpay, etc.)
 
 import React, {
   useState,
@@ -47,6 +47,7 @@ import { DesignerHub } from "./pages/DesignerHub";
 import { SkyCoinsDashboard } from "./pages/SkyCoinsDashboard";
 import { useSkyCoins } from "./hooks/useSkyCoins";
 import { SplashScreen } from "./components/SplashScreen";
+import { RazorpayPayment } from "./components/RazorpayPayment";
 
 // ============================================================
 // API CONFIGURATION
@@ -117,6 +118,7 @@ export default function App() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
 
   // Catalog Filters
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -188,7 +190,6 @@ export default function App() {
   // ROUTE HANDLING EFFECT
   // ============================================================
   useEffect(() => {
-    // Map routes to pages
     const routeMap: Record<string, Page> = {
       "/": Page.Landing,
       "/catalog": Page.ProductCatalog,
@@ -205,13 +206,11 @@ export default function App() {
 
     const path = location.pathname;
 
-    // Handle root path
     if (path === "/") {
       setPage(Page.Landing);
       return;
     }
 
-    // Handle product detail routes
     if (path.startsWith("/product/")) {
       const id = parseInt(path.split("/")[2]);
       if (!isNaN(id)) {
@@ -222,7 +221,6 @@ export default function App() {
       return;
     }
 
-    // Handle other routes
     if (routeMap[path]) {
       setPage(routeMap[path]);
     }
@@ -1030,7 +1028,6 @@ export default function App() {
 
   const taxPrice = Math.floor(subtotalPrice * 0.18);
 
-  // Calculate total with coupon discount
   const getTotalPrice = useCallback(() => {
     const baseTotal = subtotalPrice + taxPrice;
     if (applyCoupon && couponDiscount > 0) {
@@ -1101,7 +1098,7 @@ export default function App() {
   };
 
   // ============================================================
-  // TOGGLE CATEGORY - FIX FOR DROPDOWN BUTTONS
+  // TOGGLE CATEGORY
   // ============================================================
   const toggleCategory = (categoryId: number, e: MouseEvent) => {
     e.stopPropagation();
@@ -1121,6 +1118,7 @@ export default function App() {
   // ============================================================
   const handleLogin = async (e?: FormEvent) => {
     if (e) e.preventDefault();
+
     if (!loginEmail.trim() || !loginPassword.trim()) {
       triggerToast("Please fill in all required fields.", "error");
       return;
@@ -1130,33 +1128,67 @@ export default function App() {
       return;
     }
 
-    const { ok, data } = await apiRequest("/api/auth/login/", {
-      method: "POST",
-      body: JSON.stringify({
-        email: loginEmail.trim(),
-        password: loginPassword,
-      }),
-    });
+    console.log("🔍 Attempting login for:", loginEmail.trim());
 
-    if (!ok) {
-      triggerToast(data.detail || "Invalid login credentials.", "error");
-      return;
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/login/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: loginEmail.trim(),
+          password: loginPassword,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("📥 Login response:", data);
+
+      if (response.ok && data.token) {
+        // ✅ Save token and user data
+        setAuthToken(data.token);
+        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("userEmail", data.email || loginEmail.trim());
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: data.id,
+            username: data.username,
+            email: data.email,
+            name: data.name || data.username,
+          }),
+        );
+
+        setIsLoggedIn(true);
+        setUserEmail(data.email || loginEmail.trim());
+        setLoginEmail("");
+        setLoginPassword("");
+
+        triggerToast("Welcome to SkyMart! 🎉", "success");
+        console.log("✅ Login successful, token saved");
+        navigate("/catalog");
+      } else {
+        // ❌ Login failed
+        const errorMsg =
+          data.detail || data.error || "Invalid credentials. Please try again.";
+        triggerToast(errorMsg, "error");
+        console.error("❌ Login failed:", errorMsg);
+      }
+    } catch (error) {
+      console.error("❌ Login error:", error);
+      triggerToast("Network error. Please try again.", "error");
     }
-
-    if (data.token) {
-      setAuthToken(data.token);
-    }
-
-    setIsLoggedIn(true);
-    setUserEmail(data.email || loginEmail.trim());
-    setLoginEmail("");
-    setLoginPassword("");
-    triggerToast("Welcome to SkyMart! 🎉", "success");
-    navigate("/catalog");
   };
 
+  // ============================================================
+  // UPDATED REGISTER HANDLER - Redirects to Login instead of auto-login
+  // ============================================================
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
+
+    // Validation checks
     if (
       !regName.trim() ||
       !regLastName.trim() ||
@@ -1167,43 +1199,67 @@ export default function App() {
       triggerToast("Please complete all required fields.", "error");
       return;
     }
+
     if (regPassword.length < 6) {
       triggerToast("Password must be at least 6 characters.", "error");
       return;
     }
+
     if (regPassword !== regConfirm) {
       triggerToast("Passwords do not match.", "error");
       return;
     }
 
-    const { ok, data } = await apiRequest("/api/auth/register/", {
-      method: "POST",
-      body: JSON.stringify({
-        name: `${regName.trim()} ${regLastName.trim()}`,
-        email: regEmail.trim(),
-        password: regPassword,
-        confirm_password: regConfirm,
-      }),
-    });
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/register/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: `${regName.trim()} ${regLastName.trim()}`,
+          email: regEmail.trim(),
+          password: regPassword,
+          confirm_password: regConfirm,
+        }),
+      });
 
-    if (!ok) {
-      const message =
-        data.email?.[0] ||
-        data.password?.[0] ||
-        data.detail ||
-        "Unable to register.";
-      triggerToast(message, "error");
-      return;
+      const data = await response.json();
+      console.log("📥 Register response:", data);
+
+      if (response.ok) {
+        // ✅ Registration successful - Clear form fields
+        setRegName("");
+        setRegLastName("");
+        setRegEmail("");
+        setRegPassword("");
+        setRegConfirm("");
+
+        // ✅ Pre-fill login email for convenience
+        setLoginEmail(data.email || regEmail.trim());
+
+        // ✅ Show success message
+        triggerToast(
+          "✅ Account created successfully! Please sign in to continue.",
+          "success",
+        );
+
+        // ✅ Show registration success modal
+        setShowRegistrationSuccess(true);
+      } else {
+        // ❌ Registration failed
+        const errorMsg =
+          data.detail ||
+          data.email?.[0] ||
+          data.password?.[0] ||
+          data.non_field_errors?.[0] ||
+          "Registration failed. Please try again.";
+        triggerToast(errorMsg, "error");
+      }
+    } catch (error) {
+      console.error("❌ Register error:", error);
+      triggerToast("Network error. Please try again.", "error");
     }
-
-    setRegName("");
-    setRegLastName("");
-    setRegEmail("");
-    setRegPassword("");
-    setRegConfirm("");
-    setLoginEmail(regEmail.trim());
-    triggerToast("Account created successfully! Please sign in. 🎉", "success");
-    navigate("/login");
   };
 
   const handleForgotPassword = (e: FormEvent) => {
@@ -1252,6 +1308,7 @@ export default function App() {
       setIsLoggedIn(false);
       setUserEmail("");
       setAuthToken("");
+      localStorage.removeItem("authToken");
       triggerToast("Logged out. Your wishlist and cart are saved.", "info");
     } else {
       localStorage.removeItem("cart");
@@ -1259,6 +1316,7 @@ export default function App() {
       localStorage.removeItem("isLoggedIn");
       localStorage.removeItem("userEmail");
       localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
       localStorage.removeItem("customProducts");
       localStorage.removeItem("purchases");
       localStorage.removeItem("last_shipping_coordinates");
@@ -1568,7 +1626,6 @@ export default function App() {
   const completeFinalPayment = () => {
     const newPurchasedItems: typeof purchases = [];
 
-    // Determine which products to add to purchases
     let productsToProcess: { productId: number; quantity: number }[] = [];
 
     if (isShippingView && selectedProductId) {
@@ -1580,7 +1637,6 @@ export default function App() {
       });
     }
 
-    // Process each product for purchases and SkyCoins
     productsToProcess.forEach(({ productId, qty }) => {
       const prod = allProducts.find((p) => p.id === productId);
       if (prod) {
@@ -1599,10 +1655,8 @@ export default function App() {
           quantity: qty,
         });
 
-        // 🔥 ADD TO SKYCOINS STREAK for each unique product purchased
         const result = addPurchase(prod.name, prod.id, prod.price);
 
-        // If coupon was unlocked, show notification
         if (result.couponUnlocked) {
           triggerToast(
             `🌟 Amazing! You earned ${SKYCOINS_REWARD} SkyCoins and a 50% OFF coupon! Check your SkyCoins dashboard.`,
@@ -1616,7 +1670,6 @@ export default function App() {
       setPurchases((prev) => [...newPurchasedItems, ...prev]);
     }
 
-    // Apply coupon if used
     let finalTotal = totalPrice;
     if (applyCoupon && isEligibleForCoupon()) {
       const coupon = useCoupon();
@@ -1627,7 +1680,6 @@ export default function App() {
 
     triggerToast(`Payment successful! ₹${finalTotal} cleared. 🎉`, "success");
 
-    // Clear cart
     if (isShippingView && selectedProductId) {
       setCart((prev) => prev.filter((id) => id !== selectedProductId));
     } else {
@@ -1704,7 +1756,6 @@ export default function App() {
     }, 2000);
   };
 
-  // Format helpers
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\s/g, "").replace(/\D/g, "");
     const parts = v.match(/.{1,4}/g);
@@ -1884,7 +1935,6 @@ export default function App() {
     );
   };
 
-  // Reset all filters including expanded categories
   const resetAllFilters = () => {
     setSelectedCategory(null);
     setSelectedSubcategory(null);
@@ -1900,7 +1950,7 @@ export default function App() {
   };
 
   // ============================================================
-  // MAIN RENDER
+  // RENDER PAGES - ALL PAGES IN ONE COMPLETE RETURN
   // ============================================================
   return (
     <>
@@ -1923,6 +1973,33 @@ export default function App() {
             <span>{toast.message}</span>
           </div>
         )}
+
+        {/* Registration Success Modal */}
+        {showRegistrationSuccess && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md animate-fade-in">
+            <div className="bg-white rounded-3xl max-w-md w-full mx-4 p-8 text-center shadow-2xl animate-scale-in">
+              <div className="text-6xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold text-stone-800 mb-2">
+                Account Created!
+              </h2>
+              <p className="text-stone-600 mb-6">
+                Your account has been created successfully.
+                <br />
+                Please sign in to continue shopping.
+              </p>
+              <button
+                onClick={() => {
+                  setShowRegistrationSuccess(false);
+                  navigate("/login");
+                }}
+                className="w-full py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all"
+              >
+                Sign In Now
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* SkyCoins Celebration Overlay */}
         {showCelebration && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md animate-fade-in">
@@ -1983,7 +2060,7 @@ export default function App() {
         {/* ===== LANDING PAGE ===== */}
         {page === Page.Landing && (
           <div className="min-h-screen w-full relative overflow-hidden bg-gradient-to-br from-[#0a0a0f] via-[#14141a] to-[#1a1a24] text-stone-100 flex flex-col justify-between py-10 px-6 sm:px-12 selection:bg-amber-500/30 selection:text-amber-100 font-sans">
-            {/* Landing page content - keeping it short */}
+            {/* Landing page content */}
             <div className="w-full max-w-7xl mx-auto flex justify-between items-center z-20">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
@@ -2162,11 +2239,9 @@ export default function App() {
         {/* ===== LOGIN PAGE ===== */}
         {page === Page.Login && (
           <div className="min-h-screen w-full relative overflow-hidden bg-gradient-to-br from-[#0a0a0f] via-[#14141a] to-[#1a1a24] text-stone-100 flex flex-col justify-between py-8 px-4 sm:px-8 selection:bg-amber-500/30 selection:text-amber-100">
-            {/* Background Effects */}
             <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-amber-500/8 rounded-full filter blur-[150px] animate-pulse-slow pointer-events-none"></div>
             <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-purple-500/5 rounded-full filter blur-[130px] animate-pulse-slow-delayed pointer-events-none"></div>
 
-            {/* Header */}
             <div className="w-full max-w-7xl mx-auto flex items-center justify-between z-20">
               <button
                 onClick={() => navigate("/")}
@@ -2180,29 +2255,19 @@ export default function App() {
               </div>
             </div>
 
-            {/* Main Content - Two Column Layout */}
             <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center my-auto py-8 z-10">
-              {/* LEFT COLUMN - Simple Rotating Product Wheel */}
               <div className="hidden lg:flex flex-col items-center justify-center">
                 <div className="relative w-72 h-72">
-                  {/* Outer ring with subtle pulse */}
                   <div className="absolute inset-0 rounded-full border border-amber-500/20 animate-spin-slow">
                     <div className="absolute top-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-amber-400 rounded-full shadow-lg shadow-amber-500/50"></div>
                   </div>
-
-                  {/* Inner ring - counter rotating */}
                   <div className="absolute inset-[30px] rounded-full border border-stone-700/30 border-dashed animate-spin-slow-reverse">
                     <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-purple-400 rounded-full shadow-lg shadow-purple-500/50"></div>
                   </div>
-
-                  {/* Center circle with icon */}
                   <div className="absolute inset-[60px] rounded-full bg-gradient-to-br from-[#1a1817] to-[#0f0e0d] border border-stone-800/80 flex items-center justify-center shadow-2xl shadow-amber-500/10">
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500/10 via-transparent to-purple-500/10 opacity-50"></div>
                     <ShoppingCart className="w-16 h-16 text-amber-400/80 drop-shadow-[0_4px_40px_rgba(245,158,11,0.3)]" />
                   </div>
-
-                  {/* Category icons on the wheel - 6 items evenly spaced */}
-                  {/* Fashion - Top */}
                   <div className="absolute top-[-10px] left-1/2 -translate-x-1/2">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2213,8 +2278,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Tech - Top Right */}
                   <div className="absolute top-[15%] right-[-10px]">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2225,8 +2288,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Sports - Bottom Right */}
                   <div className="absolute bottom-[15%] right-[-10px]">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2237,8 +2298,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Home - Bottom */}
                   <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500/20 to-rose-600/10 border border-rose-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2249,8 +2308,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Books - Bottom Left */}
                   <div className="absolute bottom-[15%] left-[-10px]">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border border-cyan-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2261,8 +2318,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Living - Top Left */}
                   <div className="absolute top-[15%] left-[-10px]">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500/20 to-teal-600/10 border border-teal-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2274,8 +2329,6 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-
-                {/* Welcome Text Below Wheel */}
                 <div className="mt-10 text-center">
                   <h3 className="text-xl font-serif font-light text-stone-200">
                     Welcome Back
@@ -2286,7 +2339,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* RIGHT COLUMN - Login Form */}
               <div className="w-full max-w-md mx-auto lg:mx-0">
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 sm:p-10 shadow-2xl shadow-black/40">
                   <div className="text-center mb-8">
@@ -2382,7 +2434,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="w-full max-w-7xl mx-auto border-t border-stone-900/60 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] text-stone-500 font-mono uppercase tracking-[0.15em] z-10">
               <span>© 2026 SkyMart. Premium Access Portal.</span>
               <div className="flex gap-6">
@@ -2403,11 +2454,9 @@ export default function App() {
         {/* ===== REGISTER PAGE ===== */}
         {page === Page.Register && (
           <div className="min-h-screen w-full relative overflow-hidden bg-gradient-to-br from-[#0a0a0f] via-[#14141a] to-[#1a1a24] text-stone-100 flex flex-col justify-between py-8 px-4 sm:px-8 selection:bg-purple-500/30 selection:text-purple-100">
-            {/* Background Effects */}
             <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-purple-500/8 rounded-full filter blur-[150px] animate-pulse-slow pointer-events-none"></div>
             <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-amber-500/5 rounded-full filter blur-[130px] animate-pulse-slow-delayed pointer-events-none"></div>
 
-            {/* Header */}
             <div className="w-full max-w-7xl mx-auto flex items-center justify-between z-20">
               <button
                 onClick={() => navigate("/login")}
@@ -2421,29 +2470,19 @@ export default function App() {
               </div>
             </div>
 
-            {/* Main Content - Two Column Layout */}
             <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center my-auto py-8 z-10">
-              {/* LEFT COLUMN - Simple Rotating Product Wheel */}
               <div className="hidden lg:flex flex-col items-center justify-center">
                 <div className="relative w-72 h-72">
-                  {/* Outer ring with subtle pulse */}
                   <div className="absolute inset-0 rounded-full border border-purple-500/20 animate-spin-slow">
                     <div className="absolute top-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-purple-400 rounded-full shadow-lg shadow-purple-500/50"></div>
                   </div>
-
-                  {/* Inner ring - counter rotating */}
                   <div className="absolute inset-[30px] rounded-full border border-stone-700/30 border-dashed animate-spin-slow-reverse">
                     <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-amber-400 rounded-full shadow-lg shadow-amber-500/50"></div>
                   </div>
-
-                  {/* Center circle with icon */}
                   <div className="absolute inset-[60px] rounded-full bg-gradient-to-br from-[#1a1817] to-[#0f0e0d] border border-stone-800/80 flex items-center justify-center shadow-2xl shadow-purple-500/10">
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/10 via-transparent to-amber-500/10 opacity-50"></div>
                     <User className="w-16 h-16 text-purple-400/80 drop-shadow-[0_4px_40px_rgba(168,85,247,0.3)]" />
                   </div>
-
-                  {/* Category icons on the wheel - 6 items evenly spaced */}
-                  {/* Fashion - Top */}
                   <div className="absolute top-[-10px] left-1/2 -translate-x-1/2">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2454,8 +2493,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Tech - Top Right */}
                   <div className="absolute top-[15%] right-[-10px]">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2466,8 +2503,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Sports - Bottom Right */}
                   <div className="absolute bottom-[15%] right-[-10px]">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2478,8 +2513,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Home - Bottom */}
                   <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500/20 to-rose-600/10 border border-rose-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2490,8 +2523,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Books - Bottom Left */}
                   <div className="absolute bottom-[15%] left-[-10px]">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border border-cyan-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2502,8 +2533,6 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Living - Top Left */}
                   <div className="absolute top-[15%] left-[-10px]">
                     <div className="flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500/20 to-teal-600/10 border border-teal-500/30 flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer shadow-lg shadow-black/30">
@@ -2515,8 +2544,6 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-
-                {/* Welcome Text Below Wheel */}
                 <div className="mt-10 text-center">
                   <h3 className="text-xl font-serif font-light text-stone-200">
                     Join the Elite
@@ -2527,7 +2554,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* RIGHT COLUMN - Register Form */}
               <div className="w-full max-w-md mx-auto lg:mx-0">
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 sm:p-10 shadow-2xl shadow-black/40">
                   <div className="text-center mb-8">
@@ -2631,6 +2657,15 @@ export default function App() {
                         />
                       </div>
                     </div>
+
+                    {/* ✅ Added helpful text about redirect */}
+                    <div className="mt-2 p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+                      <p className="text-xs text-purple-400 text-center">
+                        ✅ After creating your account, you'll be redirected to
+                        the login page.
+                      </p>
+                    </div>
+
                     <button
                       type="submit"
                       className="w-full py-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-400 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all hover:-translate-y-0.5 active:translate-y-0 text-sm uppercase tracking-wider"
@@ -2656,7 +2691,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="w-full max-w-7xl mx-auto border-t border-stone-900/60 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] text-stone-500 font-mono uppercase tracking-[0.15em] z-10">
               <span>© 2026 SkyMart. Join the Elite Community.</span>
               <div className="flex gap-6">
@@ -2807,11 +2841,12 @@ export default function App() {
           </div>
         )}
 
-        {/* ===== MAIN STORE ===== */}
+        {/* ===== MAIN STORE (Catalog, Wishlist, Dashboard) ===== */}
         {(page === Page.ProductCatalog ||
           page === Page.Wishlist ||
           page === Page.Dashboard) && (
           <div className="flex-1 flex flex-col bg-[#faf9f5]">
+            {/* Navigation Bar */}
             <nav className="bg-[#faf9f5]/85 backdrop-blur-xl sticky top-0 z-40 border-b border-[#e7e5e4] px-4 sm:px-12 py-5 flex flex-col md:flex-row items-center justify-between gap-4">
               <div
                 onClick={() => {
@@ -3755,6 +3790,7 @@ export default function App() {
 
                     {page === Page.Dashboard ? (
                       <div className="space-y-12">
+                        {/* Dashboard Content */}
                         <div className="bg-[#1c1917] text-stone-100 p-8 sm:p-10 relative overflow-hidden">
                           <div className="absolute right-0 bottom-0 opacity-15 text-[120px] font-black tracking-tighter text-[#faf9f5] pointer-events-none select-none font-mono">
                             HAUTE
@@ -3798,7 +3834,6 @@ export default function App() {
                               </span>
                             </div>
                           </div>
-                          {/* SkyCoins Balance in Dashboard */}
                           <div className="mt-4 p-4 bg-amber-500/10 rounded-xl border border-amber-500/20">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
@@ -3872,7 +3907,7 @@ export default function App() {
                                       </span>
                                     </div>
                                   </div>
-                                  <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto font-mono text-[10px]">
+                                  <div className="flex flex-col sm:flex-end gap-2 w-full sm:w-auto font-mono text-[10px]">
                                     <span className="text-stone-700 bg-stone-100 py-1 px-2 font-semibold">
                                       Ref: {ord.id}
                                     </span>
@@ -4457,47 +4492,49 @@ export default function App() {
                 ))}
               </div>
 
-              {/* Payment content - keeping it short */}
               {!isVerifyingPayment ? (
                 <div className="bg-stone-50 rounded-2xl p-6 border border-stone-200">
                   {paymentMethod === "upi" && (
-                    <div className="flex flex-col items-center">
-                      <div className="bg-white shadow-md p-4 border border-stone-100 rounded-xl">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=${encodeURIComponent(
-                            `upi://pay?pa=razorpay.smartpay@icici&pn=SkyMart&tn=Ref-${shippingDetails.phone || "SKY"}&am=${
-                              isShippingView && selectedProductId
-                                ? allProducts.find(
-                                    (p) => p.id === selectedProductId,
-                                  )?.price || 0
-                                : totalPrice
-                            }&cu=INR`,
-                          )}`}
-                          alt="UPI QR Code"
-                          className="w-48 h-48"
-                          referrerPolicy="no-referrer"
-                        />
+                    <div className="flex flex-col items-center py-4">
+                      <div className="text-center mb-4">
+                        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <span className="text-3xl">📱</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-stone-900">
+                          Pay with UPI
+                        </h3>
+                        <p className="text-sm text-stone-500">
+                          Google Pay • PhonePe • Paytm • BHIM
+                        </p>
                       </div>
-                      <p className="text-xs text-stone-500 mt-3 max-w-xs text-center">
-                        Scan with any UPI app (PhonePe, Google Pay, Paytm, etc.)
-                      </p>
-                      <button
-                        onClick={() => {
-                          setIsVerifyingPayment(true);
-                          triggerToast("Processing UPI payment...", "info");
-                          setTimeout(() => {
-                            completeFinalPayment();
-                          }, 2000);
+                      <RazorpayPayment
+                        amount={
+                          isShippingView && selectedProductId
+                            ? allProducts.find(
+                                (p) => p.id === selectedProductId,
+                              )?.price || 0
+                            : totalPrice
+                        }
+                        orderId={`ORD-${Date.now()}`}
+                        onSuccess={(paymentId) => {
+                          triggerToast(
+                            `✅ Payment successful! ID: ${paymentId}`,
+                            "success",
+                          );
+                          completeFinalPayment();
                         }}
-                        className="mt-6 w-full py-3.5 bg-[#5f259f] hover:bg-[#4a1d7a] text-white text-xs font-bold tracking-widest uppercase transition-colors rounded-xl"
-                      >
-                        Pay ₹
-                        {isShippingView && selectedProductId
-                          ? allProducts.find((p) => p.id === selectedProductId)
-                              ?.price || 0
-                          : totalPrice}{" "}
-                        with UPI
-                      </button>
+                        onFailure={(error) => {
+                          triggerToast(`❌ Payment failed: ${error}`, "error");
+                          setIsVerifyingPayment(false);
+                        }}
+                      />
+                      <div className="mt-4 text-[10px] text-stone-400 flex items-center gap-4">
+                        <span>UPI</span>
+                        <span>•</span>
+                        <span>Credit/Debit Card</span>
+                        <span>•</span>
+                        <span>Net Banking</span>
+                      </div>
                     </div>
                   )}
 
@@ -4815,7 +4852,7 @@ export default function App() {
 }
 
 // ============================================================
-// PRODUCT CARD COMPONENT
+// PRODUCT CARD COMPONENT - MUST BE AT THE VERY BOTTOM
 // ============================================================
 interface CardProps {
   product: Product;
