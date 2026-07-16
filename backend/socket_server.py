@@ -1,18 +1,24 @@
 # backend/socket_server.py
 import os
 import eventlet
+
+# ✅ IMPORTANT: Monkey patch must happen BEFORE importing other modules
+eventlet.monkey_patch()
+
+# Now import other modules
 from flask import Flask, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_cors import CORS
 from datetime import datetime
 
-# Monkey patch eventlet for Python 3.12 compatibility
-eventlet.monkey_patch()
-
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('DJANGO_SECRET_KEY', 'your-secret-key-here')
-CORS(app, origins="*")
+
+# Configure CORS
+CORS(app, origins="*", supports_credentials=True)
+
+# Initialize SocketIO
 socketio = SocketIO(
     app,
     cors_allowed_origins="*",
@@ -20,8 +26,6 @@ socketio = SocketIO(
     ping_timeout=60,
     ping_interval=25,
 )
-
-# ... rest of your socket server code
 
 # Store room data
 rooms = {}
@@ -34,8 +38,13 @@ def handle_connect():
 def handle_disconnect():
     print(f'Client disconnected: {request.sid}')
     # Remove user from all rooms
-    for room_id in rooms:
-        rooms[room_id]['users'] = [u for u in rooms[room_id]['users'] if u.get('socketId') != request.sid]
+    for room_id in list(rooms.keys()):
+        rooms[room_id]['users'] = [
+            u for u in rooms[room_id]['users'] 
+            if u.get('socketId') != request.sid
+        ]
+        if not rooms[room_id]['users']:
+            del rooms[room_id]
 
 @socketio.on('join_room')
 def handle_join_room(data):
@@ -49,7 +58,6 @@ def handle_join_room(data):
     
     join_room(room)
     
-    # Initialize room if not exists
     if room not in rooms:
         rooms[room] = {
             'users': [],
@@ -59,7 +67,7 @@ def handle_join_room(data):
             'created_at': datetime.now().isoformat()
         }
     
-    # Check if user already in room
+    # Check if user already exists
     existing_user = next((u for u in rooms[room]['users'] if u['userId'] == user_id), None)
     if not existing_user:
         rooms[room]['users'].append({
@@ -73,17 +81,15 @@ def handle_join_room(data):
         existing_user['socketId'] = request.sid
         existing_user['isActive'] = True
     
-    # Send room state to the user
     emit('room_joined', {
         'room': room,
         'users': rooms[room]['users'],
-        'messages': rooms[room]['messages'],
+        'messages': rooms[room]['messages'][-50:],
         'cart': rooms[room]['cart'],
         'products': rooms[room]['products'],
         'created_at': rooms[room]['created_at']
     })
     
-    # Notify others
     emit('user_joined', {
         'username': username,
         'userId': user_id,
@@ -101,13 +107,15 @@ def handle_leave_room(data):
         return
     
     if room in rooms:
-        rooms[room]['users'] = [u for u in rooms[room]['users'] if u['userId'] != user_id]
+        rooms[room]['users'] = [
+            u for u in rooms[room]['users'] 
+            if u['userId'] != user_id
+        ]
         emit('user_left', {
             'userId': user_id,
             'username': data.get('username', 'Unknown')
         }, room=room)
         
-        # Clean up empty rooms
         if not rooms[room]['users']:
             del rooms[room]
     
@@ -137,7 +145,6 @@ def handle_send_message(data):
     
     rooms[room]['messages'].append(msg_data)
     
-    # Keep only last 100 messages
     if len(rooms[room]['messages']) > 100:
         rooms[room]['messages'] = rooms[room]['messages'][-100:]
     
@@ -159,7 +166,6 @@ def handle_view_product(data):
                 user['currentProduct'] = product_id
                 break
         
-        # Add product to room products if not exists
         if product and not any(p.get('id') == product_id for p in rooms[room].get('products', [])):
             if 'products' not in rooms[room]:
                 rooms[room]['products'] = []
@@ -183,7 +189,6 @@ def handle_add_to_cart(data):
         return
     
     if room in rooms:
-        # Find existing cart item
         existing_item = next((item for item in rooms[room]['cart'] if item.get('id') == product_id), None)
         if existing_item:
             existing_item['quantity'] = existing_item.get('quantity', 0) + quantity
@@ -214,7 +219,10 @@ def handle_remove_from_cart(data):
         return
     
     if room in rooms:
-        rooms[room]['cart'] = [item for item in rooms[room]['cart'] if item.get('id') != product_id]
+        rooms[room]['cart'] = [
+            item for item in rooms[room]['cart'] 
+            if item.get('id') != product_id
+        ]
         emit('cart_updated', {
             'cart': rooms[room]['cart'],
             'userId': user_id
@@ -234,7 +242,10 @@ def handle_update_cart_quantity(data):
         for item in rooms[room]['cart']:
             if item.get('id') == product_id:
                 if quantity <= 0:
-                    rooms[room]['cart'] = [i for i in rooms[room]['cart'] if i.get('id') != product_id]
+                    rooms[room]['cart'] = [
+                        i for i in rooms[room]['cart'] 
+                        if i.get('id') != product_id
+                    ]
                 else:
                     item['quantity'] = quantity
                 break
@@ -264,9 +275,10 @@ def handle_get_room_state(data):
 
 if __name__ == '__main__':
     print('🚀 Starting Socket.io server...')
+    port = int(os.environ.get('SOCKET_PORT', 5001))
     socketio.run(
         app,
         host='0.0.0.0',
-        port=int(os.environ.get('SOCKET_PORT', 5001)),
+        port=port,
         debug=False
     )
