@@ -6,6 +6,9 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_cors import CORS
 from datetime import datetime
 
+# Monkey patch eventlet for Python 3.12 compatibility
+eventlet.monkey_patch()
+
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('DJANGO_SECRET_KEY', 'your-secret-key-here')
@@ -17,6 +20,8 @@ socketio = SocketIO(
     ping_timeout=60,
     ping_interval=25,
 )
+
+# ... rest of your socket server code
 
 # Store room data
 rooms = {}
