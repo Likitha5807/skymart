@@ -1,5 +1,5 @@
 // src/components/ShopTogether.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSocket } from "../context/SocketContext";
 import {
   Users,
@@ -35,7 +35,6 @@ export function ShopTogether({
     roomState,
     joinRoom,
     leaveRoom,
-    viewProduct,
     sendMessage,
     addToCollabCart,
     removeFromCollabCart,
@@ -51,6 +50,18 @@ export function ShopTogether({
   const [showCart, setShowCart] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [localMessages, setLocalMessages] = useState<any[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Update local messages when socket messages change
+  useEffect(() => {
+    setLocalMessages(messages);
+  }, [messages]);
+
+  // Auto-scroll to bottom of messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [localMessages]);
 
   const generateRoomId = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -64,8 +75,8 @@ export function ShopTogether({
   const handleCreateRoom = () => {
     const newRoomId = generateRoomId();
     setRoomId(newRoomId);
-    joinRoom(newRoomId, username, userId);
     setIsCreatingRoom(true);
+    joinRoom(newRoomId, username, userId);
   };
 
   const handleJoinRoom = () => {
@@ -78,11 +89,13 @@ export function ShopTogether({
     leaveRoom();
     setRoomId("");
     setIsCreatingRoom(false);
+    setLocalMessages([]);
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (messageInput.trim()) {
+    if (messageInput.trim() && currentRoom) {
+      console.log("📤 Sending message:", messageInput);
       sendMessage(messageInput);
       setMessageInput("");
     }
@@ -93,6 +106,12 @@ export function ShopTogether({
     navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleAddToCart = (product: any) => {
+    if (!product) return;
+    console.log("🛒 Adding to cart:", product);
+    addToCollabCart(product.id, product);
   };
 
   // Not in a room - show join/create UI
@@ -195,7 +214,7 @@ export function ShopTogether({
 
       {/* Online Users */}
       <div className="px-4 py-3 border-b border-white/10 flex flex-wrap gap-2">
-        {users.map((user) => {
+        {users.map((user: any) => {
           const isCurrentUser = user.userId === userId;
           return (
             <div
@@ -253,9 +272,7 @@ export function ShopTogether({
                 </p>
                 <div className="flex gap-3 mt-4">
                   <button
-                    onClick={() =>
-                      addToCollabCart(currentProduct.id, currentProduct)
-                    }
+                    onClick={() => handleAddToCart(currentProduct)}
                     className="flex-1 px-6 py-3 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all"
                   >
                     Add to Group Cart
@@ -268,11 +285,11 @@ export function ShopTogether({
                   <div className="flex flex-wrap gap-2 mt-2">
                     {users
                       .filter(
-                        (u) =>
+                        (u: any) =>
                           u.currentProduct === currentProduct.id &&
                           u.userId !== userId,
                       )
-                      .map((u) => (
+                      .map((u: any) => (
                         <span
                           key={u.socketId}
                           className="text-xs text-white/60 bg-white/5 px-2 py-1 rounded-full"
@@ -281,7 +298,7 @@ export function ShopTogether({
                         </span>
                       ))}
                     {users.filter(
-                      (u) =>
+                      (u: any) =>
                         u.currentProduct === currentProduct.id &&
                         u.userId !== userId,
                     ).length === 0 && (
@@ -318,7 +335,7 @@ export function ShopTogether({
               }`}
             >
               <MessageCircle className="w-4 h-4 inline mr-1" />
-              Chat ({messages.length})
+              Chat ({localMessages.length})
             </button>
             <button
               onClick={() => {
@@ -340,12 +357,12 @@ export function ShopTogether({
           {showChat && (
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                {messages.map((msg, idx) => {
+                {localMessages.map((msg, idx) => {
                   const isCurrentUser = msg.userId === userId;
                   return (
                     <div
                       key={idx}
-                      className={`flex flex-col ${isCurrentUser ? "items-end" : "items-start"}`}
+                      className={`flex flex-col ${isCurrentUser ? "items-end" : "items-start"} animate-message-in`}
                     >
                       <div
                         className={`max-w-[85%] px-3 py-1.5 rounded-lg text-sm ${
@@ -358,14 +375,21 @@ export function ShopTogether({
                       </div>
                       <span className="text-[8px] text-white/30 mt-0.5 px-1">
                         {msg.username} •{" "}
-                        {new Date(msg.timestamp).toLocaleTimeString()}
+                        {msg.timestamp
+                          ? new Date(msg.timestamp).toLocaleTimeString()
+                          : "just now"}
                       </span>
                     </div>
                   );
                 })}
-                {messages.length === 0 && (
+                <div ref={messagesEndRef} />
+                {localMessages.length === 0 && (
                   <div className="text-center text-white/30 text-sm py-8">
-                    No messages yet. Say hello!
+                    <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>No messages yet</p>
+                    <p className="text-xs">
+                      Say hello to your shopping buddies!
+                    </p>
                   </div>
                 )}
               </div>
@@ -495,15 +519,15 @@ export function ShopTogether({
           <div className="flex gap-3 overflow-x-auto pb-2">
             {users
               .filter(
-                (u) =>
+                (u: any) =>
                   u.currentProduct &&
                   u.currentProduct !== currentProduct.id &&
                   u.userId !== userId,
               )
               .slice(0, 3)
-              .map((user) => {
+              .map((user: any) => {
                 const product = roomState?.products.find(
-                  (p) => p.id === user.currentProduct,
+                  (p: any) => p.id === user.currentProduct,
                 );
                 if (!product) return null;
                 return (
@@ -539,7 +563,7 @@ export function ShopTogether({
                 );
               })}
             {users.filter(
-              (u) =>
+              (u: any) =>
                 u.currentProduct &&
                 u.currentProduct !== currentProduct.id &&
                 u.userId !== userId,
