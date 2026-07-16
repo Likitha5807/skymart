@@ -14,6 +14,9 @@ declare global {
   }
 }
 
+// ✅ ADD THIS LINE - API_BASE for Render
+const API_BASE = "https://skymart-h.onrender.com";
+
 export function RazorpayPayment({
   amount,
   orderId,
@@ -38,27 +41,23 @@ export function RazorpayPayment({
       setIsLoading(true);
       setError(null);
 
-      // Load Razorpay script
       const isScriptLoaded = await loadRazorpayScript();
       if (!isScriptLoaded) {
         throw new Error("Failed to load Razorpay SDK");
       }
 
-      // Create order on backend
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/payments/create-order/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify({
-            amount: amount,
-            receipt: orderId || `order_${Date.now()}`,
-          }),
+      // ✅ FIXED: Use API_BASE instead of localhost
+      const response = await fetch(`${API_BASE}/api/payments/create-order/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
-      );
+        body: JSON.stringify({
+          amount: amount,
+          receipt: orderId || `order_${Date.now()}`,
+        }),
+      });
 
       const data = await response.json();
 
@@ -66,7 +65,6 @@ export function RazorpayPayment({
         throw new Error(data.error || "Failed to create order");
       }
 
-      // Initialize Razorpay
       const options = {
         key: data.key,
         amount: data.amount,
@@ -76,7 +74,6 @@ export function RazorpayPayment({
         image: "https://your-logo-url.com/logo.png",
         order_id: data.order_id,
         handler: function (response: any) {
-          // Payment successful
           verifyPayment(response, data.order_id);
         },
         prefill: {
@@ -110,21 +107,19 @@ export function RazorpayPayment({
 
   const verifyPayment = async (response: any, orderId: string) => {
     try {
-      const verifyResponse = await fetch(
-        "http://127.0.0.1:8000/api/payments/verify/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify({
-            razorpay_order_id: orderId,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature,
-          }),
+      // ✅ FIXED: Use API_BASE instead of localhost
+      const verifyResponse = await fetch(`${API_BASE}/api/payments/verify/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
-      );
+        body: JSON.stringify({
+          razorpay_order_id: orderId,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+        }),
+      });
 
       const data = await verifyResponse.json();
 
