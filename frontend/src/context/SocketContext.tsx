@@ -43,9 +43,8 @@ interface SocketContextType {
 }
 
 const SocketContext = createContext<SocketContextType | null>(null);
-
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3001";
-
+const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL || "https://skymart-socket.onrender.com";
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
