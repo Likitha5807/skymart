@@ -1,4 +1,4 @@
-// src/context/SocketContext.tsx
+// frontend/src/context/SocketContext.tsx
 import React, {
   createContext,
   useContext,
@@ -8,62 +8,58 @@ import React, {
 } from "react";
 import { io, Socket } from "socket.io-client";
 
-interface RoomUser {
-  socketId: string;
-  username: string;
-  userId: string;
-  isActive: boolean;
-  currentProduct: number | null;
-}
-
-interface RoomState {
-  users: RoomUser[];
-  products: any[];
-  messages: any[];
-  selectedProduct: any | null;
-  cart: any[];
-  created_at: number;
-}
+const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL || "https://skymart-h-socket.onrender.com";
 
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   currentRoom: string | null;
-  roomState: RoomState | null;
   joinRoom: (roomId: string, username: string, userId: string) => void;
   leaveRoom: () => void;
-  viewProduct: (productId: number, product: any) => void;
   sendMessage: (message: string) => void;
+  users: any[];
+  messages: any[];
+  cartItems: any[];
   addToCollabCart: (productId: number, product: any) => void;
   removeFromCollabCart: (productId: number) => void;
   updateCartQuantity: (productId: number, quantity: number) => void;
-  users: RoomUser[];
-  messages: any[];
-  cartItems: any[];
 }
 
-const SocketContext = createContext<SocketContextType | null>(null);
-const SOCKET_URL =
-  import.meta.env.VITE_SOCKET_URL || "https://skymart-socket.onrender.com";
-export function SocketProvider({ children }: { children: React.ReactNode }) {
+const SocketContext = createContext<SocketContextType | undefined>(undefined);
+
+export const useSocket = () => {
+  const context = useContext(SocketContext);
+  if (!context) {
+    throw new Error("useSocket must be used within a SocketProvider");
+  }
+  return context;
+};
+
+export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [currentRoom, setCurrentRoom] = useState<string | null>(null);
-  const [roomState, setRoomState] = useState<RoomState | null>(null);
+  const [users, setUsers] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [cartItems, setCartItems] = useState<any[]>([]);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL, {
-      transports: ["websocket", "polling"],
+      transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
+
     socketRef.current = newSocket;
     setSocket(newSocket);
 
     newSocket.on("connect", () => {
-      console.log("🟢 Socket connected");
+      console.log("🟢 Socket connected!", newSocket.id);
       setIsConnected(true);
     });
 
@@ -72,123 +68,157 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setIsConnected(false);
     });
 
-    newSocket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
-      setIsConnected(false);
+    newSocket.on("room_joined", (data) => {
+      console.log("📥 Room joined:", data);
+      setUsers(data.users || []);
+      setMessages(data.messages || []);
+      setCartItems(data.cart || []);
+      setCurrentRoom(data.room);
     });
 
-    newSocket.on("room-state", (state: RoomState) => {
-      setRoomState(state);
+    newSocket.on("user_joined", (data) => {
+      console.log("👤 User joined:", data);
+      setUsers((prev) => [
+        ...prev,
+        {
+          userId: data.userId,
+          username: data.username,
+          socketId: data.socketId,
+          isActive: true,
+          currentProduct: null,
+        },
+      ]);
     });
 
-    newSocket.on("users-update", (users: RoomUser[]) => {
-      setRoomState((prev) => (prev ? { ...prev, users } : null));
+    newSocket.on("user_left", (data) => {
+      console.log("👋 User left:", data);
+      setUsers((prev) => prev.filter((u) => u.userId !== data.userId));
     });
 
-    newSocket.on("user-viewing", ({ userId, username, productId, product }) => {
-      setRoomState((prev) => {
-        if (!prev) return prev;
-        const updatedUsers = prev.users.map((u) =>
-          u.socketId === userId ? { ...u, currentProduct: productId } : u,
-        );
-        return { ...prev, users: updatedUsers };
-      });
+    newSocket.on("new_message", (data) => {
+      console.log("💬 New message:", data);
+      setMessages((prev) => [...prev, data]);
     });
 
-    newSocket.on("new-message", (message) => {
-      setRoomState((prev) => {
-        if (!prev) return prev;
-        return { ...prev, messages: [...prev.messages, message] };
-      });
+    newSocket.on("cart_updated", (data) => {
+      console.log("🛒 Cart updated:", data);
+      setCartItems(data.cart || []);
     });
 
-    newSocket.on("cart-update", (cart) => {
-      setRoomState((prev) => {
-        if (!prev) return prev;
-        return { ...prev, cart };
-      });
+    newSocket.on("error", (data) => {
+      console.error("❌ Socket error:", data);
     });
 
     return () => {
       newSocket.disconnect();
-      socketRef.current = null;
-      setSocket(null);
     };
   }, []);
 
   const joinRoom = (roomId: string, username: string, userId: string) => {
-    if (socketRef.current && isConnected) {
-      socketRef.current.emit("join-room", { roomId, username, userId });
-      setCurrentRoom(roomId);
-    } else {
-      console.warn("Socket not connected, cannot join room");
+    if (!socketRef.current || !isConnected) {
+      console.error("❌ Socket not connected");
+      return;
     }
+
+    console.log("📤 Joining room:", roomId);
+    socketRef.current.emit("join_room", {
+      room: roomId,
+      username: username,
+      userId: userId,
+    });
   };
 
   const leaveRoom = () => {
-    if (socketRef.current && isConnected) {
-      socketRef.current.emit("leave-room");
-      setCurrentRoom(null);
-      setRoomState(null);
-    }
-  };
+    if (!socketRef.current || !currentRoom) return;
 
-  const viewProduct = (productId: number, product: any) => {
-    if (socketRef.current && isConnected && currentRoom) {
-      socketRef.current.emit("view-product", { productId, product });
-    }
+    socketRef.current.emit("leave_room", {
+      room: currentRoom,
+      userId: localStorage.getItem("userId") || "guest",
+    });
+
+    setCurrentRoom(null);
+    setUsers([]);
+    setMessages([]);
+    setCartItems([]);
   };
 
   const sendMessage = (message: string) => {
-    if (socketRef.current && isConnected && currentRoom) {
-      socketRef.current.emit("send-message", { message });
+    if (!socketRef.current || !currentRoom) {
+      console.error("❌ Not in a room");
+      return;
     }
+
+    const userId = localStorage.getItem("userId") || "guest";
+    const username = localStorage.getItem("username") || "Guest";
+
+    socketRef.current.emit("send_message", {
+      room: currentRoom,
+      message: message,
+      username: username,
+      userId: userId,
+    });
   };
 
   const addToCollabCart = (productId: number, product: any) => {
-    if (socketRef.current && isConnected && currentRoom) {
-      socketRef.current.emit("add-to-collab-cart", { productId, product });
+    if (!socketRef.current || !currentRoom) {
+      console.error("❌ Not in a room");
+      return;
     }
+
+    const userId = localStorage.getItem("userId") || "guest";
+
+    socketRef.current.emit("add_to_cart", {
+      room: currentRoom,
+      productId: productId,
+      product: product,
+      userId: userId,
+      quantity: 1,
+    });
   };
 
   const removeFromCollabCart = (productId: number) => {
-    if (socketRef.current && isConnected && currentRoom) {
-      socketRef.current.emit("remove-from-collab-cart", { productId });
-    }
+    if (!socketRef.current || !currentRoom) return;
+
+    const userId = localStorage.getItem("userId") || "guest";
+
+    socketRef.current.emit("remove_from_cart", {
+      room: currentRoom,
+      productId: productId,
+      userId: userId,
+    });
   };
 
   const updateCartQuantity = (productId: number, quantity: number) => {
-    if (socketRef.current && isConnected && currentRoom) {
-      socketRef.current.emit("update-cart-quantity", { productId, quantity });
-    }
-  };
+    if (!socketRef.current || !currentRoom) return;
 
-  const value: SocketContextType = {
-    socket,
-    isConnected,
-    currentRoom,
-    roomState,
-    joinRoom,
-    leaveRoom,
-    viewProduct,
-    sendMessage,
-    addToCollabCart,
-    removeFromCollabCart,
-    updateCartQuantity,
-    users: roomState?.users || [],
-    messages: roomState?.messages || [],
-    cartItems: roomState?.cart || [],
+    const userId = localStorage.getItem("userId") || "guest";
+
+    socketRef.current.emit("update_cart_quantity", {
+      room: currentRoom,
+      productId: productId,
+      quantity: quantity,
+      userId: userId,
+    });
   };
 
   return (
-    <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
+    <SocketContext.Provider
+      value={{
+        socket,
+        isConnected,
+        currentRoom,
+        joinRoom,
+        leaveRoom,
+        sendMessage,
+        users,
+        messages,
+        cartItems,
+        addToCollabCart,
+        removeFromCollabCart,
+        updateCartQuantity,
+      }}
+    >
+      {children}
+    </SocketContext.Provider>
   );
-}
-
-export function useSocket() {
-  const context = useContext(SocketContext);
-  if (!context) {
-    throw new Error("useSocket must be used within a SocketProvider");
-  }
-  return context;
-}
+};
