@@ -52,8 +52,7 @@ import { RazorpayPayment } from "./components/RazorpayPayment";
 // ============================================================
 // API CONFIGURATION
 // ============================================================
-const API_BASE =
-  (import.meta as any)?.env?.VITE_API_BASE || "http://127.0.0.1:8000";
+const API_BASE = "https://skymart-h.onrender.com";
 
 // ============================================================
 // MAIN APP COMPONENT
