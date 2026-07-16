@@ -235,7 +235,7 @@ class Brand(models.Model):
     
     class Meta:
         db_table = 'store_brands'  # Changed from 'store_brand'
-        managed = False
+        managed = True
     
     def __str__(self):
         return self.name
