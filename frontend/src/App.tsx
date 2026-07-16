@@ -65,7 +65,9 @@ export default function App() {
   // --- Get socket context ---
   const { currentRoom, viewProduct } = useSocket();
 
-  // --- APPLICATION STATE ---
+  // ============================================================
+  // APPLICATION STATE
+  // ============================================================
   const [page, setPage] = useState<Page>(Page.Landing);
   const [showSplash, setShowSplash] = useState(true);
   const [cart, setCart] = useState<number[]>(() => {
@@ -103,6 +105,16 @@ export default function App() {
       return localStorage.getItem("authToken") || "";
     } catch {
       return "";
+    }
+  });
+
+  // ✅ FIX: userData state - properly initialized
+  const [userData, setUserData] = useState<any>(() => {
+    try {
+      const saved = localStorage.getItem("user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
     }
   });
 
@@ -1150,15 +1162,16 @@ export default function App() {
         localStorage.setItem("authToken", data.token);
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("userEmail", data.email || loginEmail.trim());
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            id: data.id,
-            username: data.username,
-            email: data.email,
-            name: data.name || data.username,
-          }),
-        );
+
+        // ✅ Save user data
+        const userDataToSave = {
+          id: data.id,
+          username: data.username,
+          name: data.name || data.username,
+          email: data.email || loginEmail.trim(),
+        };
+        localStorage.setItem("user", JSON.stringify(userDataToSave));
+        setUserData(userDataToSave);
 
         setIsLoggedIn(true);
         setUserEmail(data.email || loginEmail.trim());
@@ -1307,7 +1320,9 @@ export default function App() {
       setIsLoggedIn(false);
       setUserEmail("");
       setAuthToken("");
+      setUserData(null);
       localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
       triggerToast("Logged out. Your wishlist and cart are saved.", "info");
     } else {
       localStorage.removeItem("cart");
@@ -1325,6 +1340,7 @@ export default function App() {
       setWishlist([]);
       setUserEmail("");
       setAuthToken("");
+      setUserData(null);
       setCustomProducts([]);
       setPurchases([]);
       setShippingDetails({
@@ -3279,6 +3295,7 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* ✅ UPDATED: Shop Together with userData */}
                 {showShopTogetherPage && currentDetailProduct && (
                   <ShopTogetherRouter
                     currentProduct={currentDetailProduct}
@@ -3300,7 +3317,8 @@ export default function App() {
                     }}
                   />
                 )}
-                {/* INLINE SHOP TOGETHER (fallback) */}
+
+                {/* ✅ UPDATED: Inline Shop Together with userData */}
                 {!showShopTogetherPage &&
                   showShopTogether &&
                   currentDetailProduct && (
@@ -3323,6 +3341,7 @@ export default function App() {
                       />
                     </div>
                   )}
+
                 <div className="mt-16">
                   <h3 className="font-serif text-lg tracking-widest uppercase mb-8 border-b border-[#e7e5e4] pb-4">
                     Related Products
