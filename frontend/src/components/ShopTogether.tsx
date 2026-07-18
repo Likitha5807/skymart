@@ -30,7 +30,6 @@ export function ShopTogether({
   const {
     isConnected,
     currentRoom,
-    roomState,
     joinRoom,
     leaveRoom,
     sendMessage,
@@ -47,7 +46,6 @@ export function ShopTogether({
   const [showChat, setShowChat] = useState(true);
   const [showCart, setShowCart] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [localMessages, setLocalMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -70,8 +68,6 @@ export function ShopTogether({
 
   const handleCreateRoom = () => {
     const newRoomId = generateRoomId();
-    setRoomId(newRoomId);
-    setIsCreatingRoom(true);
     joinRoom(newRoomId, username, userId);
   };
 
@@ -84,7 +80,6 @@ export function ShopTogether({
   const handleLeaveRoom = () => {
     leaveRoom();
     setRoomId("");
-    setIsCreatingRoom(false);
     setLocalMessages([]);
   };
 
@@ -144,7 +139,7 @@ export function ShopTogether({
           <div className="flex gap-2">
             <input
               type="text"
-              placeholder="Enter room code (e.g., ABC123)"
+              placeholder="Enter room code"
               value={roomId}
               onChange={(e) => setRoomId(e.target.value.toUpperCase())}
               className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none focus:border-amber-500 text-white text-sm uppercase font-mono tracking-wider"
@@ -169,7 +164,7 @@ export function ShopTogether({
 
   return (
     <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
-      {/* Room Header */}
+      {/* Header */}
       <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="w-5 h-5 text-amber-400" />
@@ -181,7 +176,7 @@ export function ShopTogether({
         <div className="flex items-center gap-2">
           <button
             onClick={copyRoomLink}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
             {copied ? (
               <Check className="w-4 h-4 text-green-500" />
@@ -198,8 +193,8 @@ export function ShopTogether({
         </div>
       </div>
 
-      {/* Users List */}
-      <div className="px-4 py-3 border-b border-white/10 flex flex-wrap gap-2">
+      {/* Users */}
+      <div className="px-4 py-2 border-b border-white/10 flex flex-wrap gap-2">
         {users.map((user: any) => (
           <div
             key={user.socketId}
@@ -217,83 +212,77 @@ export function ShopTogether({
         ))}
       </div>
 
-      {/* Main Content - Clean Grid without "Others are viewing" */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
-        {/* Product Section - 2 columns */}
-        <div className="lg:col-span-2 p-6 min-h-[350px] border-r border-white/10">
+      {/* Main Content - Simple Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+        {/* Product */}
+        <div className="bg-white/5 rounded-xl p-4">
           {currentProduct ? (
-            <div className="flex flex-col sm:flex-row gap-6">
-              <div className="w-full sm:w-1/2 bg-white/5 rounded-xl p-6 flex items-center justify-center">
-                <img
-                  src={currentProduct.img}
-                  alt={currentProduct.name}
-                  className="max-h-48 object-contain"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "https://via.placeholder.com/300x300?text=No+Image";
-                  }}
-                />
-              </div>
-              <div className="w-full sm:w-1/2 space-y-3">
-                <h4 className="text-xl font-bold text-white">
-                  {currentProduct.name}
-                </h4>
-                <p className="text-sm text-white/60">{currentProduct.brand}</p>
-                <p className="text-2xl font-semibold text-amber-400">
-                  ₹{currentProduct.price}
-                </p>
-                <button
-                  onClick={() => handleAddToCart(currentProduct)}
-                  className="w-full px-6 py-3 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all"
-                >
-                  Add to Group Cart
-                </button>
-              </div>
-            </div>
+            <>
+              <img
+                src={currentProduct.img}
+                alt={currentProduct.name}
+                className="w-full h-48 object-contain mb-3"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://via.placeholder.com/300x300?text=No+Image";
+                }}
+              />
+              <h4 className="text-lg font-bold text-white">
+                {currentProduct.name}
+              </h4>
+              <p className="text-sm text-white/60">{currentProduct.brand}</p>
+              <p className="text-xl font-semibold text-amber-400">
+                ₹{currentProduct.price}
+              </p>
+              <button
+                onClick={() => handleAddToCart(currentProduct)}
+                className="w-full mt-3 px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:opacity-90"
+              >
+                Add to Group Cart
+              </button>
+            </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center text-white/40">
+            <div className="flex flex-col items-center justify-center h-64 text-center text-white/40">
               <Eye className="w-12 h-12 mb-3 opacity-50" />
               <p className="text-sm">No product selected</p>
             </div>
           )}
         </div>
 
-        {/* Chat Section - 1 column */}
-        <div className="lg:col-span-1 flex flex-col h-[400px]">
-          {/* Tabs */}
-          <div className="flex border-b border-white/10 flex-shrink-0">
+        {/* Chat + Cart */}
+        <div className="bg-white/5 rounded-xl flex flex-col h-[400px]">
+          <div className="flex border-b border-white/10">
             <button
               onClick={() => {
                 setShowChat(true);
                 setShowCart(false);
               }}
-              className={`flex-1 py-3 text-xs font-semibold transition-colors ${
+              className={`flex-1 py-2 text-xs font-semibold ${
                 showChat
                   ? "border-b-2 border-amber-500 text-amber-400"
                   : "text-white/40"
               }`}
             >
-              <MessageCircle className="w-4 h-4 inline mr-1" />
-              Chat ({localMessages.length})
+              <MessageCircle className="w-4 h-4 inline mr-1" /> Chat (
+              {localMessages.length})
             </button>
             <button
               onClick={() => {
                 setShowChat(false);
                 setShowCart(true);
               }}
-              className={`flex-1 py-3 text-xs font-semibold transition-colors ${
+              className={`flex-1 py-2 text-xs font-semibold ${
                 showCart
                   ? "border-b-2 border-amber-500 text-amber-400"
                   : "text-white/40"
               }`}
             >
-              <ShoppingCart className="w-4 h-4 inline mr-1" />
-              Cart ({cartItems.length})
+              <ShoppingCart className="w-4 h-4 inline mr-1" /> Cart (
+              {cartItems.length})
             </button>
           </div>
 
-          {/* Chat View */}
           {showChat && (
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -305,7 +294,7 @@ export function ShopTogether({
                       className={`flex flex-col ${isCurrentUser ? "items-end" : "items-start"}`}
                     >
                       {!isCurrentUser && (
-                        <span className="text-[10px] text-white/50 mb-0.5">
+                        <span className="text-[10px] text-white/50">
                           {msg.username}
                         </span>
                       )}
@@ -318,7 +307,7 @@ export function ShopTogether({
                       >
                         {msg.message}
                       </div>
-                      <span className="text-[8px] text-white/30 mt-0.5">
+                      <span className="text-[8px] text-white/30">
                         {msg.timestamp
                           ? new Date(msg.timestamp).toLocaleTimeString([], {
                               hour: "2-digit",
@@ -334,15 +323,12 @@ export function ShopTogether({
                   <div className="text-center text-white/30 text-sm py-8">
                     <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p>No messages yet</p>
-                    <p className="text-xs">
-                      Say hello to your shopping buddies!
-                    </p>
                   </div>
                 )}
               </div>
               <form
                 onSubmit={handleSendMessage}
-                className="p-3 border-t border-white/10 flex gap-2 bg-white/5 flex-shrink-0"
+                className="p-3 border-t border-white/10 flex gap-2 bg-white/5"
               >
                 <input
                   type="text"
@@ -362,38 +348,31 @@ export function ShopTogether({
             </div>
           )}
 
-          {/* Cart View */}
           {showCart && (
             <div className="flex-1 overflow-y-auto p-3">
               {cartItems.length === 0 ? (
                 <div className="text-center text-white/40 text-sm py-8">
                   <ShoppingCart className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p>Group cart is empty</p>
-                  <p className="text-xs">Add items from the product view</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {cartItems.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-3 p-2 bg-white/5 rounded-lg"
+                      className="flex items-center gap-2 p-2 bg-white/5 rounded-lg"
                     >
                       <img
                         src={item.img}
                         alt={item.name}
-                        className="w-10 h-10 object-contain bg-white/5 rounded border border-white/10 p-1"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            "https://via.placeholder.com/50x50?text=No+Image";
-                        }}
+                        className="w-10 h-10 object-contain"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-white truncate">
                           {item.name}
                         </p>
                         <p className="text-[10px] text-white/50">
-                          ₹{item.price} x {item.quantity || 1}
+                          ₹{item.price} x {item.quantity}
                         </p>
                       </div>
                       <button
@@ -404,7 +383,7 @@ export function ShopTogether({
                       </button>
                     </div>
                   ))}
-                  <div className="border-t border-white/10 pt-3 mt-3">
+                  <div className="border-t border-white/10 pt-2 mt-2">
                     <div className="flex justify-between text-sm font-semibold text-white">
                       <span>Total</span>
                       <span className="text-amber-400">
@@ -416,9 +395,6 @@ export function ShopTogether({
                         )}
                       </span>
                     </div>
-                    <button className="w-full mt-2 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg text-sm font-semibold hover:opacity-90">
-                      Checkout Group Cart
-                    </button>
                   </div>
                 </div>
               )}
