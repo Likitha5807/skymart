@@ -244,10 +244,10 @@ export function ShopTogether({
         })}
       </div>
 
-      {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-0">
-        {/* Product View Area */}
-        <div className="lg:col-span-3 p-6 min-h-[350px] border-r border-white/10">
+      {/* ✅ FIXED: Main Content Area - Changed from 4 to 5 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
+        {/* ✅ FIXED: Product View Area - Now 4 columns instead of 3 */}
+        <div className="lg:col-span-4 p-6 min-h-[350px] border-r border-white/10">
           {currentProduct ? (
             <div className="flex flex-col lg:flex-row gap-6 items-start">
               <div className="w-full lg:w-1/2 bg-white/5 rounded-xl p-6 flex items-center justify-center">
@@ -319,10 +319,10 @@ export function ShopTogether({
           )}
         </div>
 
-        {/* Chat / Cart Toggle */}
-        <div className="lg:col-span-1 flex flex-col h-[450px]">
+        {/* ✅ FIXED: Chat / Cart Toggle - Now has more space */}
+        <div className="lg:col-span-1 flex flex-col h-[450px] max-h-[70vh]">
           {/* Tabs */}
-          <div className="flex border-b border-white/10">
+          <div className="flex border-b border-white/10 flex-shrink-0">
             <button
               onClick={() => {
                 setShowChat(true);
@@ -355,7 +355,7 @@ export function ShopTogether({
 
           {/* Chat View */}
           {showChat && (
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden min-h-0">
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {localMessages.map((msg, idx) => {
                   const isCurrentUser = msg.userId === userId;
@@ -445,7 +445,7 @@ export function ShopTogether({
               </div>
               <form
                 onSubmit={handleSendMessage}
-                className="p-3 border-t border-white/10 flex gap-2 bg-white/5"
+                className="p-3 border-t border-white/10 flex gap-2 bg-white/5 flex-shrink-0"
               >
                 <input
                   type="text"
