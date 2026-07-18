@@ -46,6 +46,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const [messages, setMessages] = useState<any[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
   const socketRef = useRef<Socket | null>(null);
+  const lastMessageRef = useRef<{
+    message: string;
+    userId: string;
+    time: number;
+  } | null>(null);
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL, {
@@ -95,8 +100,31 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
       setUsers((prev) => prev.filter((u) => u.userId !== data.userId));
     });
 
+    // ✅ FIXED: Duplicate message prevention
     newSocket.on("new_message", (data) => {
       console.log("💬 New message:", data);
+
+      // Check for duplicate messages (same content, same user, within 1 second)
+      const now = Date.now();
+      const lastMsg = lastMessageRef.current;
+
+      if (
+        lastMsg &&
+        lastMsg.message === data.message &&
+        lastMsg.userId === data.userId &&
+        now - lastMsg.time < 1000
+      ) {
+        console.log("⚠️ Duplicate message blocked");
+        return;
+      }
+
+      // Store this message as the last one
+      lastMessageRef.current = {
+        message: data.message,
+        userId: data.userId,
+        time: now,
+      };
+
       setMessages((prev) => [...prev, data]);
     });
 
@@ -113,7 +141,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
       newSocket.disconnect();
     };
   }, []);
-  // frontend/src/context/SocketContext.tsx
 
   const joinRoom = (roomId: string, username: string, userId: string) => {
     if (!socketRef.current || !isConnected) {
@@ -133,6 +160,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
       userId: userId,
     });
   };
+
   const leaveRoom = () => {
     if (!socketRef.current || !currentRoom) return;
 
@@ -145,6 +173,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     setUsers([]);
     setMessages([]);
     setCartItems([]);
+    // ✅ Reset last message ref when leaving room
+    lastMessageRef.current = null;
   };
 
   const sendMessage = (message: string) => {
