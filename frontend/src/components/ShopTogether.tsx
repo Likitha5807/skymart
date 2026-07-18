@@ -53,12 +53,10 @@ export function ShopTogether({
   const [localMessages, setLocalMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Update local messages when socket messages change
   useEffect(() => {
     setLocalMessages(messages);
   }, [messages]);
 
-  // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [localMessages]);
@@ -95,7 +93,6 @@ export function ShopTogether({
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (messageInput.trim() && currentRoom) {
-      console.log("📤 Sending message:", messageInput);
       sendMessage(messageInput);
       setMessageInput("");
     }
@@ -110,11 +107,9 @@ export function ShopTogether({
 
   const handleAddToCart = (product: any) => {
     if (!product) return;
-    console.log("🛒 Adding to cart:", product);
     addToCollabCart(product.id, product);
   };
 
-  // Not in a room - show join/create UI
   if (!currentRoom) {
     return (
       <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-xl">
@@ -174,7 +169,6 @@ export function ShopTogether({
     );
   }
 
-  // In a room - show collaborative UI
   return (
     <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
       {/* Room Header */}
@@ -244,9 +238,9 @@ export function ShopTogether({
         })}
       </div>
 
-      {/* ✅ FIXED: Main Content Area - Changed from 4 to 5 columns */}
+      {/* ✅ FIXED: Main Content Area with Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-0">
-        {/* ✅ FIXED: Product View Area - Now 4 columns instead of 3 */}
+        {/* Product View Area - 4 columns */}
         <div className="lg:col-span-4 p-6 min-h-[350px] border-r border-white/10">
           {currentProduct ? (
             <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -270,42 +264,12 @@ export function ShopTogether({
                 <p className="text-lg font-semibold text-amber-400">
                   ₹{currentProduct.price}
                 </p>
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={() => handleAddToCart(currentProduct)}
-                    className="flex-1 px-6 py-3 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all"
-                  >
-                    Add to Group Cart
-                  </button>
-                </div>
-
-                {/* Show who's viewing this product */}
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <p className="text-xs text-white/40">👀 Currently viewing:</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {users
-                      .filter(
-                        (u: any) =>
-                          u.currentProduct === currentProduct.id &&
-                          u.userId !== userId,
-                      )
-                      .map((u: any) => (
-                        <span
-                          key={u.socketId}
-                          className="text-xs text-white/60 bg-white/5 px-2 py-1 rounded-full"
-                        >
-                          {u.username}
-                        </span>
-                      ))}
-                    {users.filter(
-                      (u: any) =>
-                        u.currentProduct === currentProduct.id &&
-                        u.userId !== userId,
-                    ).length === 0 && (
-                      <span className="text-xs text-white/40">Only you</span>
-                    )}
-                  </div>
-                </div>
+                <button
+                  onClick={() => handleAddToCart(currentProduct)}
+                  className="w-full px-6 py-3 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-all"
+                >
+                  Add to Group Cart
+                </button>
               </div>
             </div>
           ) : (
@@ -319,7 +283,7 @@ export function ShopTogether({
           )}
         </div>
 
-        {/* ✅ FIXED: Chat / Cart Toggle - Now has more space */}
+        {/* Chat / Cart - 1 column */}
         <div className="lg:col-span-1 flex flex-col h-[450px] max-h-[70vh]">
           {/* Tabs */}
           <div className="flex border-b border-white/10 flex-shrink-0">
@@ -359,8 +323,6 @@ export function ShopTogether({
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {localMessages.map((msg, idx) => {
                   const isCurrentUser = msg.userId === userId;
-
-                  // Check if this is the first message from this user
                   const isFirstMessage =
                     idx === 0 ||
                     (idx > 0 && localMessages[idx - 1]?.userId !== msg.userId);
@@ -370,7 +332,6 @@ export function ShopTogether({
                       key={idx}
                       className={`flex flex-col ${isCurrentUser ? "items-end" : "items-start"} animate-message-in`}
                     >
-                      {/* Show avatar and username for other users' first message */}
                       {!isCurrentUser && isFirstMessage && (
                         <div className="flex items-center gap-2 mb-0.5">
                           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-amber-500/20">
@@ -390,7 +351,6 @@ export function ShopTogether({
                         </div>
                       )}
 
-                      {/* Show "You" for current user's first message */}
                       {isCurrentUser && isFirstMessage && (
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-[10px] text-amber-400/70 font-medium">
@@ -407,7 +367,6 @@ export function ShopTogether({
                         </div>
                       )}
 
-                      {/* Message bubble */}
                       <div
                         className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
                           isCurrentUser
@@ -418,7 +377,6 @@ export function ShopTogether({
                         {msg.message}
                       </div>
 
-                      {/* Show time for non-first messages */}
                       {!isFirstMessage && (
                         <span className="text-[8px] text-white/20 mt-0.5 px-1">
                           {msg.timestamp
@@ -452,12 +410,12 @@ export function ShopTogether({
                   placeholder="Type a message..."
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm text-white outline-none focus:border-amber-500 placeholder-white/30 transition-all"
+                  className="flex-1 px-4 py-2 bg-white/10 border border-white/10 rounded-full text-sm text-white outline-none focus:border-amber-400 placeholder-white/30"
                 />
                 <button
                   type="submit"
                   disabled={!messageInput.trim()}
-                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-amber-500/20"
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-full hover:opacity-90 disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -537,8 +495,6 @@ export function ShopTogether({
                       </div>
                     </div>
                   ))}
-
-                  {/* Cart Summary */}
                   <div className="border-t border-white/10 pt-3 mt-3">
                     <div className="flex justify-between text-sm font-semibold text-white">
                       <span>Total</span>
@@ -562,7 +518,7 @@ export function ShopTogether({
         </div>
       </div>
 
-      {/* Product Suggestions */}
+      {/* ✅ FIXED: Product Suggestions - Moved outside grid but still in flow */}
       {currentProduct && (
         <div className="p-4 border-t border-white/10 bg-white/5">
           <p className="text-xs text-white/40 mb-2">👀 Others are viewing:</p>
