@@ -1,2 +1,4 @@
-# skymart-h
-The future of shopping is here . An E-Commerce website where you can buy products with features more than needed.it has more than what now in shopping has . 
+=======
+# skymart
+An e-commerce website where you can find all the products  
+>>>>>>> 746aae94f5a1f8b72189ae60e557c9a6bdadd65a
