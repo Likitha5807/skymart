@@ -164,19 +164,21 @@ def handle_send_message(data):
     username = data.get('username')
     user_id = data.get('userId')
     
-    print(f'💬 Message from {username} in {room}: {message[:30]}...')
-    
     if not room or not message:
-        emit('error', {'message': 'Missing room or message'})
         return
-    
-    room = room.upper().strip()
     
     if room not in rooms:
-        emit('error', {'message': 'Room not found'})
         return
     
-    # Create message data
+    # ✅ Check for duplicate before adding
+    if rooms[room]['messages']:
+        last = rooms[room]['messages'][-1]
+        if (last.get('message') == message and 
+            last.get('userId') == user_id and
+            (datetime.now() - datetime.fromisoformat(last.get('timestamp'))).total_seconds() < 1):
+            print('⚠️ Duplicate blocked')
+            return
+    
     msg_data = {
         'username': username or 'Anonymous',
         'userId': user_id or 'unknown',
@@ -184,8 +186,8 @@ def handle_send_message(data):
         'timestamp': datetime.now().isoformat()
     }
     
-    # Store message
     rooms[room]['messages'].append(msg_data)
+    emit('new_message', msg_data, room=room)
     
     # Keep only last 100 messages
     if len(rooms[room]['messages']) > 100:
